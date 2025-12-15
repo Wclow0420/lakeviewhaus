@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5d940b44-277b-444f-a60f-0add8fd0a6ae"
+      }
+    },
+    "owner": "lakevie-haus"
   }
 }
