@@ -48,8 +48,9 @@ def create_app():
     from app.models.reward import Reward, UserVoucher
 
     # Register Blueprints
-    from app.routes import auth
+    from app.routes import auth, gamification
     app.register_blueprint(auth.bp)
+    app.register_blueprint(gamification.bp)
 
     @app.route('/')
     def hello():

@@ -15,7 +15,21 @@ class User(db.Model):
     otp_expires_at = db.Column(db.DateTime)
 
     current_points = db.Column(db.Integer, default=0)
+    total_streak = db.Column(db.Integer, default=0)
+    last_check_in_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def rank(self):
+        points = self.current_points
+        if points >= 5000:
+            return 'Platinum'
+        elif points >= 2000:
+            return 'Gold'
+        elif points >= 500:
+            return 'Silver'
+        else:
+            return 'Bronze'
 
     def __repr__(self):
         return f'<User {self.username}>'

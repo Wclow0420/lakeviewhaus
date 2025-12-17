@@ -118,7 +118,8 @@ def login():
         'user': {
             'id': user.id,
             'username': user.username,
-            'points': user.current_points
+            'points': user.current_points,
+            'rank': user.rank
         }
     }), 200
 
@@ -167,6 +168,6 @@ def me():
     else:
         user = User.query.get(int(current_identity))
         if user:
-            return jsonify({'id': user.id, 'username': user.username, 'email': user.email, 'points': user.current_points, 'type': 'member'})
+            return jsonify({'id': user.id, 'username': user.username, 'email': user.email, 'points': user.current_points, 'rank': user.rank, 'type': 'member'})
             
     return jsonify({'error': 'User not found'}), 404

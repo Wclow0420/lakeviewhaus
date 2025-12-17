@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Colors, Layout } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
-import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { api } from '@/services/api';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -27,7 +26,7 @@ export default function LoginScreen() {
             // Let's verify backend: "data.get('email') # Login with Email". Correct.
             // So body should be { email, password }.
 
-            await login(response.access_token, response.user);
+            await login(response.access_token, response.refresh_token, response.user);
             // Router redirect handled by AuthContext automatically
 
         } catch (error: any) {

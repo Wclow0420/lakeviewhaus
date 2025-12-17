@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { useRouter, useSegments } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 // Define the shape of the context
 type AuthContextType = {
     user: any | null;
     isLoading: boolean;
-    login: (token: string, userData: any) => Promise<void>;
+    login: (token: string, refreshToken: string, userData: any) => Promise<void>;
     logout: () => Promise<void>;
 };
 
@@ -60,14 +60,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [user, segments, isLoading]);
 
-    const login = async (token: string, userData: any) => {
+    const login = async (token: string, refreshToken: string, userData: any) => {
         await SecureStore.setItemAsync('access_token', token);
+        await SecureStore.setItemAsync('refresh_token', refreshToken);
         await SecureStore.setItemAsync('user_data', JSON.stringify(userData));
         setUser(userData);
     };
 
     const logout = async () => {
         await SecureStore.deleteItemAsync('access_token');
+        await SecureStore.deleteItemAsync('refresh_token');
         await SecureStore.deleteItemAsync('user_data');
         setUser(null);
     };
