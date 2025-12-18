@@ -61,13 +61,47 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, curren
     }
   }, [streak]);
 
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    if (canCheckIn) {
+      setTimeLeft('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = new Date();
+      const tomorrow = new Date();
+      tomorrow.setHours(24, 0, 0, 0); // Next Midnight
+      const diff = tomorrow.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft('Ready!');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      // const seconds = Math.floor((diff % (1000 * 60)) / 1000); 
+      // Optional: show seconds if < 1 hour? Or just H/M is cleaner.
+      // User asked "how many hours".
+
+      setTimeLeft(`Next: ${hours}h ${minutes}m`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 60000); // Update every minute to save resources/renders
+    return () => clearInterval(interval);
+  }, [canCheckIn]);
+
   const badgeStyle = useAnimatedStyle(() => ({
     transform: [{ scale: badgeScale.value }],
     opacity: streak > 0 ? 1 : 0
   }));
 
   // Rank Logic
-  let rank: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' = 'Silver';
+  // Prioritize calculating from latest points to ensure UI is instant
+  let rank: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' = 'Bronze';
   let nextRank = 'Silver';
   let min = 0;
   let max = 500;
@@ -165,29 +199,34 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, curren
             <Text style={[styles.rankText, { color: currentStyle.badgeText }]}>{rank}</Text>
           </View>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.miniCheckIn,
-            {
-              borderColor: rank === 'Platinum' ? '#444' : '#E0E0E0',
-              backgroundColor: rank === 'Platinum' ? '#333' : '#FAFAFA',
-              opacity: canCheckIn ? 1 : 0.6
-            }
-          ]}
-          onPress={canCheckIn ? onCheckIn : undefined}
-        >
-          <Text style={[styles.miniCheckInText, { color: rank === 'Platinum' ? '#FFF' : '#333' }]}>
-            {canCheckIn ? 'Check In' : 'Done'}
-          </Text>
+        <View style={{ alignItems: 'center' }}>
+          <TouchableOpacity
+            style={[
+              styles.miniCheckIn,
+              {
+                borderColor: rank === 'Platinum' ? '#444' : '#E0E0E0',
+                backgroundColor: rank === 'Platinum' ? '#333' : '#FAFAFA',
+                opacity: canCheckIn ? 1 : 0.6
+              }
+            ]}
+            onPress={canCheckIn ? onCheckIn : undefined}
+          >
+            <Text style={[styles.miniCheckInText, { color: rank === 'Platinum' ? '#FFF' : '#333' }]}>
+              {canCheckIn ? 'Check In' : 'Done'}
+            </Text>
 
-          {/* Animated Streak Badge */}
-          {streak > 0 && (
-            <Animated.View style={[styles.streakBadge, badgeStyle]}>
-              <Ionicons name="flame" size={10} color="#FFF" />
-              <Text style={styles.streakBadgeText}>{streak}</Text>
-            </Animated.View>
+            {/* Animated Streak Badge */}
+            {streak > 0 && (
+              <Animated.View style={[styles.streakBadge, badgeStyle]}>
+                <Ionicons name="flame" size={10} color="#FFF" />
+                <Text style={styles.streakBadgeText}>{streak}</Text>
+              </Animated.View>
+            )}
+          </TouchableOpacity>
+          {!canCheckIn && (
+            <Text style={{ fontSize: 10, marginTop: 4, color: currentStyle.label, fontWeight: '500' }}>{timeLeft}</Text>
           )}
-        </TouchableOpacity>
+        </View>
       </View>
 
       {/* Points Display */}
@@ -213,7 +252,7 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, curren
           </Text>
         )}
       </View>
-    </LinearGradient>
+    </LinearGradient >
   );
 };
 

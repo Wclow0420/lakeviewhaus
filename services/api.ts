@@ -4,8 +4,8 @@ import { Platform } from 'react-native';
 // Replace with your machine's IP if running on physical Android device
 // For iOS Simulator or Android Emulator (some), localhost might work or 10.0.2.2
 const DEV_API_URL = Platform.select({
-    ios: 'http://172.20.10.2:5002', // Your LAN IP for physical device
-    android: 'http://172.20.10.2:5002', // Your LAN IP for physical device
+    ios: 'http://10.2.12.133:5002', // Your LAN IP for physical device
+    android: 'http://10.2.12.133:5002', // Your LAN IP for physical device
     default: 'http://127.0.0.1:5002',
 });
 
