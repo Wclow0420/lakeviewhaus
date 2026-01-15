@@ -37,8 +37,8 @@ export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescrip
     // Determine Theme based on streak
     const getTheme = (days: number) => {
         if (days >= 7) return {
-            color: '#00FFFF', // Cyan/Electric Blue
-            glow: 'rgba(0, 255, 255, 0.4)',
+            color: '#E60000', // Special Red
+            glow: 'rgba(230, 0, 0, 0.4)',
             icon: 'trophy',
             title: 'Legendary!'
         };

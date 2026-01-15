@@ -45,12 +45,27 @@ def create_app():
     from app.models.check_in import DailyCheckIn
     from app.models.merchant import Merchant, Branch
     from app.models.transaction import Transaction
-    from app.models.reward import Reward, UserVoucher
+    from app.models.reward import Reward, UserReward, UserVoucher
+    from app.models.menu import MenuCategory, Product, ProductOptionGroup, ProductOption, Collection, CollectionItem
+    from app.models.marketing import HomeBanner, HomeTopPick
 
     # Register Blueprints
-    from app.routes import auth, gamification
+    from app.routes import auth, gamification, merchant, menu, upload, rewards
     app.register_blueprint(auth.bp)
     app.register_blueprint(gamification.bp)
+    app.register_blueprint(merchant.bp)
+    app.register_blueprint(menu.bp)
+    app.register_blueprint(upload.bp)
+    app.register_blueprint(rewards.bp)
+    
+    from app.routes import transaction
+    app.register_blueprint(transaction.bp)
+
+    from app.routes import customer
+    app.register_blueprint(customer.bp)
+
+    from app.routes import marketing
+    app.register_blueprint(marketing.bp)
 
     @app.route('/')
     def hello():

@@ -3,10 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.user import User
 from app.models.check_in import DailyCheckIn
-from app.models.reward import Reward, UserVoucher
 from datetime import datetime, timedelta
 import random
-import uuid
 
 bp = Blueprint('gamification', __name__, url_prefix='/gamification')
 
@@ -14,6 +12,13 @@ bp = Blueprint('gamification', __name__, url_prefix='/gamification')
 @jwt_required()
 def check_in_status():
     user_id = get_jwt_identity()
+    
+    # Validation: Merchants have string IDs, Customers have Ints
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Gamification not available for this user type'}), 403
+
     user = User.query.get(user_id)
     
     if not user:
@@ -54,13 +59,21 @@ def check_in_status():
         'total_streak': current_streak,
         'cycle_day': cycle_day,
         'last_check_in': last_check_in.isoformat() if last_check_in else None,
-        'points': user.current_points
+        'points': user.points_balance or 0.0,
+        'points_balance': user.points_balance or 0.0,
+        'points_lifetime': user.points_lifetime or 0.0
     }), 200
 
 @bp.route('/check-in', methods=['POST'])
 @jwt_required()
 def check_in():
     user_id = get_jwt_identity()
+
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Gamification not available for this user type'}), 403
+
     user = User.query.get(user_id)
     
     if not user:
@@ -84,7 +97,6 @@ def check_in():
     
     points_to_add = 0
     prize_description = None
-    has_voucher = False
     
     # Points Logic
     if cycle_day == 1:
@@ -100,14 +112,13 @@ def check_in():
     elif cycle_day == 6:
         points_to_add = 7
     elif cycle_day == 7:
-        # Lucky Draw Logic
-        # (7pt + RM 1 Voucher) 50%
-        # (9pt + RM 1 Voucher) 30%
-        # (15pt + RM 1 Voucher) 15%
-        # (20pt + RM 1 Voucher) 5%
+        # Lucky Draw Logic (Points Only - users can redeem rewards separately)
+        # 7pt 50%
+        # 9pt 30%
+        # 15pt 15%
+        # 20pt 5%
         rand = random.random() * 100
-        has_voucher = True
-        
+
         if rand < 50:
             points_to_add = 7
         elif rand < 80: # 50 + 30
@@ -116,40 +127,18 @@ def check_in():
             points_to_add = 15
         else: # Remaining 5%
             points_to_add = 20
-            
-        prize_description = f"{points_to_add} Points + RM 1 Voucher"
-    
+
+        prize_description = f"{points_to_add} Points Lucky Draw!"
+
     # Add Points
-    user.current_points += points_to_add
-    
-    # Handle Voucher if applicable
-    if has_voucher:
-        # Check if "RM 1 Voucher" exists
-        voucher_reward = Reward.query.filter_by(name="RM 1 Voucher").first()
-        if not voucher_reward:
-            # Create if missing (auto-seeding for convenience)
-            voucher_reward = Reward(
-                name="RM 1 Voucher",
-                cost_points=0, # Free/Prize
-                voucher_value=1.00,
-                description="Lucky Draw Prize from 7-Day Streak"
-            )
-            db.session.add(voucher_reward)
-            db.session.commit()
-            
-        # Issue Voucher
-        new_voucher = UserVoucher(
-            user_id=user.id,
-            reward_id=voucher_reward.id,
-            unique_code=f"LD-{user.id}-{int(datetime.utcnow().timestamp())}-{random.randint(100,999)}"
-        )
-        db.session.add(new_voucher)
+    user.add_points(points_to_add)
     
     # Record Check In
     check_in_record = DailyCheckIn(
         user_id=user.id,
         check_in_date=today,
-        streak_day_count=cycle_day
+        streak_day_count=cycle_day,
+        points_earned=points_to_add
     )
     db.session.add(check_in_record)
     
@@ -162,9 +151,10 @@ def check_in():
     return jsonify({
         'success': True,
         'points_added': points_to_add,
-        'new_total_points': user.current_points,
+        'new_total_points': user.points_balance or 0.0,
+        'points_balance': user.points_balance or 0.0,
+        'points_lifetime': user.points_lifetime or 0.0,
         'streak': user.total_streak,
         'cycle_day': cycle_day,
-        'prize': prize_description,
-        'has_voucher': has_voucher
+        'prize': prize_description
     }), 200

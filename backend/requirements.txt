@@ -7,3 +7,5 @@ python-dotenv
 alembic
 flask-jwt-extended
 flask-mail
+requests
+gunicorn

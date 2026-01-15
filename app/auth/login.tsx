@@ -8,23 +8,22 @@ import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function LoginScreen() {
     const router = useRouter();
     const { login } = useAuth();
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [secretTaps, setSecretTaps] = useState(0); // Secret reveal state
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
 
     const handleLogin = async () => {
         setLoading(true);
         try {
-            const response = await api.post('/auth/login', { email, password }); // Backend expects 'email' now for Member login!
-            // Let's verify backend: "data.get('email') # Login with Email". Correct.
-            // So body should be { email, password }.
+            const response = await api.post('/auth/login', { identifier, password });
 
             await login(response.access_token, response.refresh_token, response.user);
             // Router redirect handled by AuthContext automatically
@@ -40,21 +39,22 @@ export default function LoginScreen() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <View style={styles.header}>
-                <View style={[styles.iconContainer, { backgroundColor: theme.inputBackground }]}>
-                    <Ionicons name="restaurant" size={40} color={theme.primary} />
-                </View>
+                <TouchableWithoutFeedback onPress={() => setSecretTaps(prev => prev + 1)}>
+                    <View style={[styles.iconContainer, { backgroundColor: theme.inputBackground }]}>
+                        <Ionicons name="restaurant" size={40} color={theme.primary} />
+                    </View>
+                </TouchableWithoutFeedback>
                 <Text style={[styles.title, { color: theme.text }]}>Welcome Back!</Text>
                 <Text style={[styles.subtitle, { color: theme.icon }]}>Hungry for points? Sign in to continue.</Text>
             </View>
 
             <View style={styles.form}>
                 <Input
-                    label="Email Address"
-                    placeholder="brian@lakeview.com"
-                    value={email}
-                    onChangeText={setEmail}
+                    label="Email, Phone or Username"
+                    placeholder="Enter your email, phone or username"
+                    value={identifier}
+                    onChangeText={setIdentifier}
                     autoCapitalize="none"
-                    keyboardType="email-address"
                 />
                 <Input
                     label="Password"
@@ -81,6 +81,13 @@ export default function LoginScreen() {
                         <Text style={{ color: theme.primary, fontWeight: '700' }}>Sign Up</Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* Secret Merchant Entry */}
+                {secretTaps >= 7 && (
+                    <TouchableOpacity onPress={() => router.push('/auth/merchant-login')} style={{ marginTop: 30, alignSelf: 'center' }}>
+                        <Text style={{ color: theme.icon, fontSize: 12 }}>Merchant Sign In</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </ScreenWrapper>
     );

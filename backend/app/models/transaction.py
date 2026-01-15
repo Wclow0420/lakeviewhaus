@@ -8,7 +8,8 @@ class Transaction(db.Model):
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
     member_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     amount_spent = db.Column(db.Float, nullable=False) # e.g. RM 10.50
-    points_earned = db.Column(db.Integer, nullable=False)
+    points_earned = db.Column(db.Float, nullable=False)
+    transaction_type = db.Column(db.String(50), default='purchase')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

@@ -37,6 +37,27 @@ export const Colors = {
     tabBarBackground: '#111111', // Black floating bar
   },
   dark: {
+    text: textPrimary,
+    background: backgroundBeige,
+    card: cardWhite,
+
+    primary: primaryYellow,
+    secondary: primaryBlack, // Used for buttons often
+    success: '#27AE60',
+    error: '#EB5757',
+
+    tint: primaryBlack,
+    icon: '#8E8E93',
+    tabIconDefault: '#8E8E93',
+    tabIconSelected: primaryYellow, // Or black box with yellow icon
+
+    border: '#E0E0E0',
+    inputBackground: '#FFFFFF',
+
+    // Specific UI Elements
+    tabBarBackground: '#111111', // Black floating bar
+  },
+  darkbackup: {
     // Dark mode backup (though the design is light-centric)
     text: '#FFFFFF',
     background: '#121212',

@@ -3,9 +3,10 @@ import { CheckInSuccess } from '@/components/gamification/CheckInSuccess';
 import { Colors, Layout } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { api } from '@/services/api';
+import { api, API_URL } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -45,8 +46,9 @@ const PRODUCTS = [
   { id: 4, name: 'Velvet Mocha', price: '10.00', originalPrice: '18.00', discount: '45% OFF', image: 'https://images.unsplash.com/photo-1570968915860-37d4237d74f3?auto=format&fit=crop&w=400&q=80' },
 ];
 
-const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, currentPoints }: { user: any, theme: any, onCheckIn: () => void, streak: number, canCheckIn: boolean, currentPoints?: number }) => {
-  const points = currentPoints !== undefined ? currentPoints : (user?.points || 0);
+const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, currentPoints, onShowQr }: { user: any, theme: any, onCheckIn: () => void, streak: number, canCheckIn: boolean, currentPoints?: number, onShowQr: () => void }) => {
+  // Use lifetime points for rank calculation (never drops when spending)
+  const points = currentPoints !== undefined ? currentPoints : (user?.points_lifetime || user?.points || 0);
 
   // Animation for Streak Badge
   const badgeScale = useSharedValue(0);
@@ -198,6 +200,10 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, curren
             <Ionicons name="trophy" size={12} color={currentStyle.badgeText} />
             <Text style={[styles.rankText, { color: currentStyle.badgeText }]}>{rank}</Text>
           </View>
+          <TouchableOpacity onPress={onShowQr} style={{ marginLeft: 8 }}>
+            <Ionicons name="qr-code" size={24} color={currentStyle.text} />
+          </TouchableOpacity>
+
         </View>
         <View style={{ alignItems: 'center' }}>
           <TouchableOpacity
@@ -257,6 +263,7 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, curren
 };
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme as keyof typeof Colors];
@@ -264,6 +271,7 @@ export default function HomeScreen() {
 
   // Check In State
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const [streak, setStreak] = useState(0);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [prizeDesc, setPrizeDesc] = useState<string | undefined>(undefined);
@@ -272,29 +280,60 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<number | undefined>(undefined);
 
-  // Fetch Status
-  const fetchStatus = async () => {
+  // Dynamic Data State
+  const [banners, setBanners] = useState<any[]>([]);
+  const [topPicks, setTopPicks] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch Status & Content
+  const fetchData = async () => {
     try {
-      const status = await api.getCheckInStatus();
-      setStreak(status.total_streak);
-      setCanCheckIn(status.can_check_in);
-      if (status.points !== undefined) {
-        setCurrentPoints(status.points);
+      // Parallel Fetch
+      const [statusRes, bannersRes, topPicksRes, branchesRes] = await Promise.all([
+        api.getCheckInStatus().catch(e => ({ can_check_in: false, total_streak: 0 })), // Fail safe
+        api.customer.getBanners().catch(() => []),
+        api.customer.getTopPicks().catch(() => []),
+        api.customer.getBranches().catch(() => [])
+      ]);
+
+      // Status
+      if (statusRes) {
+        setStreak(statusRes.total_streak || 0);
+        setCanCheckIn(statusRes.can_check_in);
+        // Use lifetime points for rank display
+        if (statusRes.points_lifetime !== undefined) {
+          setCurrentPoints(statusRes.points_lifetime);
+        } else if (statusRes.points !== undefined) {
+          setCurrentPoints(statusRes.points);
+        }
       }
+
+      // Content
+      if (bannersRes && bannersRes.length > 0) setBanners(bannersRes);
+      if (topPicksRes && topPicksRes.length > 0) setTopPicks(topPicksRes);
+      if (branchesRes && branchesRes.length > 0) setBranches(branchesRes);
+
     } catch (e) {
-      console.log("Error fetching gamification status", e);
+      console.log("Error fetching home data", e);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStatus();
-    // Determine initial points from user object if not yet fetched
-    if (user?.points) setCurrentPoints(user.points);
+    fetchData();
+    // Determine initial points from user object if not yet fetched (use lifetime for rank)
+    if (user?.points_lifetime) {
+      setCurrentPoints(user.points_lifetime);
+    } else if (user?.points) {
+      setCurrentPoints(user.points);
+    }
   }, []);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await fetchStatus();
+    await fetchData();
     setRefreshing(false);
   }, []);
 
@@ -312,7 +351,8 @@ export default function HomeScreen() {
       // Update local state based on result
       setStreak(res.streak);
       setPointsEarned(res.points_added);
-      setCurrentPoints(res.new_total_points); // Update points immediately
+      // Update with lifetime points (for rank calculation)
+      setCurrentPoints(res.points_lifetime || res.new_total_points);
       setPrizeDesc(res.prize);
       setIsLuckyDraw(res.cycle_day === 7); // OR res.has_voucher
       setCanCheckIn(false);
@@ -379,21 +419,26 @@ export default function HomeScreen() {
             onScroll={onScroll}
             scrollEventThrottle={16}
           >
-            {SLIDES.map((slide, index) => (
-              <View key={slide.id} style={{ width, height: 380 }}>
-                <Image
-                  source={{ uri: slide.image }}
-                  style={{ width: '100%', height: '100%' }}
-                  resizeMode="cover"
-                />
-                {/* Gradient Overlay for text visibility if needed, or keeping it clean like Luckin */}
-              </View>
-            ))}
+            {(banners.length > 0 ? banners : SLIDES).map((slide, index) => {
+              const imgUri = slide.image_url
+                ? (slide.image_url.startsWith('http') ? slide.image_url : `${API_URL}${slide.image_url}`)
+                : slide.image;
+              return (
+                <View key={slide.id} style={{ width, height: 380 }}>
+                  <Image
+                    source={{ uri: imgUri }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                  {/* Gradient Overlay for text visibility if needed, or keeping it clean like Luckin */}
+                </View>
+              );
+            })}
           </ScrollView>
 
           {/* Pagination Dots */}
           <View style={styles.pagination}>
-            {SLIDES.map((_, index) => (
+            {(banners.length > 0 ? banners : SLIDES).map((_, index) => (
               <View
                 key={index}
                 style={[
@@ -416,15 +461,19 @@ export default function HomeScreen() {
             streak={streak}
             canCheckIn={canCheckIn}
             currentPoints={currentPoints}
+            onShowQr={() => setShowQr(true)}
           />
 
           {/* Action Banners */}
           <View style={styles.bannerRow}>
             {/* Order Now - Main Action */}
-            <TouchableOpacity style={[styles.mainBanner, { backgroundColor: '#E3F2FD' }]}>
+            <TouchableOpacity
+              style={[styles.mainBanner, { backgroundColor: '#E3F2FD' }]}
+              onPress={() => router.push('/(tabs)/store')}
+            >
               <View>
-                <Text style={[styles.bannerTitle, { color: '#1565C0' }]}>ORDER{'\n'}NOW</Text>
-                <Text style={[styles.bannerSubtitle, { color: '#64B5F6' }]}>Collect & Delivery</Text>
+                <Text style={[styles.bannerTitle, { color: '#1565C0' }]}>CHECK{'\n'}MENU</Text>
+                <Text style={[styles.bannerSubtitle, { color: '#64B5F6' }]}>Order & Collect</Text>
               </View>
               <Image
                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2927/2927347.png' }}
@@ -445,6 +494,44 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Branches Section */}
+          <View style={styles.branchSection}>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 12 }]}>Our Store</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 }}>
+              {branches.map((branch) => {
+                // 5 items per row. Screen Width - Padding (24*2=48). Item Width = (W-48)/5
+                const itemWidth = (width - 48) / 5;
+
+                return (
+                  <TouchableOpacity
+                    key={branch.id}
+                    style={{ width: itemWidth, alignItems: 'center' }}
+                    onPress={() => {
+                      router.push({ pathname: '/(tabs)/store', params: { branchId: branch.id } });
+                    }}
+                  >
+                    <View style={[styles.branchImageCircle, { borderColor: theme.border, width: 44, height: 44, borderRadius: 22 }]}>
+                      {branch.logo_url ? (
+                        <Image
+                          source={{ uri: branch.logo_url.startsWith('http') ? branch.logo_url : `${API_URL}${branch.logo_url}` }}
+                          style={styles.branchImage}
+                        />
+                      ) : (
+                        <Ionicons name="storefront" size={18} color={theme.icon} />
+                      )}
+                    </View>
+                    <Text
+                      numberOfLines={2}
+                      style={[styles.branchNameText, { color: theme.text, fontSize: 9 }]}
+                    >
+                      {branch.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {/* Top Picks Header */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Top Picks</Text>
@@ -455,29 +542,57 @@ export default function HomeScreen() {
 
           {/* Product Grid */}
           <View style={styles.productGrid}>
-            {PRODUCTS.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.productCard, { backgroundColor: theme.card }]}
-              >
-                <View style={styles.productImageWrapper}>
-                  <Image source={{ uri: item.image }} style={styles.productImage} />
-                  <View style={styles.discountBadge}>
-                    <Text style={styles.discountText}>{item.discount}</Text>
+            {(topPicks.length > 0 ? topPicks : PRODUCTS).map((item) => {
+              // Handle different data structures (Backend vs Hardcoded fallback)
+              const isDynamic = !!item.product;
+              const product = isDynamic ? item.product : item;
+              const name = product.name;
+              const price = product.price; // Backend is number
+              // Backend currently doesn't have 'originalPrice' or 'discount' in Basic Product model unless we add it. 
+              // For now we just show Price.
+              const imgUri = product.image_url
+                ? (product.image_url.startsWith('http') ? product.image_url : `${API_URL}${product.image_url}`)
+                : (product.image || 'https://via.placeholder.com/150');
+
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.productCard, { backgroundColor: theme.card }]}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/(tabs)/store',
+                      params: {
+                        branchId: product.branch_id,
+                        productId: product.id
+                      }
+                    });
+                  }}
+                >
+                  <View style={styles.productImageWrapper}>
+                    <Image source={{ uri: imgUri }} style={styles.productImage} />
+                    {/* Only show badge if data exists (hardcoded fallback has it) */}
+                    {product.discount && (
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountText}>{product.discount}</Text>
+                      </View>
+                    )}
                   </View>
-                </View>
-                <View style={styles.productInfo}>
-                  <Text style={[styles.productName, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.currentPrice}>RM {item.price}</Text>
-                    <Text style={styles.originalPrice}>RM {item.originalPrice}</Text>
+                  <View style={styles.productInfo}>
+                    <Text style={[styles.productName, { color: theme.text }]} numberOfLines={1}>{name}</Text>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.currentPrice}>RM {Number(price).toFixed(2)}</Text>
+                      {product.originalPrice && <Text style={styles.originalPrice}>RM {product.originalPrice}</Text>}
+                    </View>
+                    {/* Tag fallback */}
+                    {product.discount && (
+                      <View style={styles.priceTag}>
+                        <Text style={styles.priceTagText}>{product.discount}</Text>
+                      </View>
+                    )}
                   </View>
-                  <View style={styles.priceTag}>
-                    <Text style={styles.priceTagText}>{item.discount}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
         </View>
@@ -768,5 +883,31 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     fontSize: 10,
     fontWeight: '500',
+  },
+
+  // Branch Section Styles
+  branchSection: {
+    marginBottom: 32,
+  },
+  branchImageCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  branchImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  branchNameText: {
+    fontSize: 10,
+    textAlign: 'center',
+    fontWeight: '600',
   }
 });
