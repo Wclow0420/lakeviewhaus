@@ -8,6 +8,7 @@ from app.models.transaction import Transaction
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from flask_mail import Message
+from app.services.notification_service import NotificationService
 import random
 import datetime
 
@@ -53,6 +54,18 @@ def process_referral_rewards(user):
              )
              db.session.add(ur)
 
+             # Notify Referrer (Voucher)
+             NotificationService.send_notification(
+                user_id=user.referred_by_id,
+                title='Referral Reward! 🎁',
+                body=f'You earned a {reward.title} for referring {user.username}!',
+                type='referral',
+                data={
+                    'reward_name': reward.title,
+                    'friend_username': user.username
+                }
+             )
+
     # 1.1 Reward Referrer Points
     if merchant.referral_referrer_points > 0:
         main_branch = Branch.query.filter_by(merchant_id=merchant.id, is_main=True).first()
@@ -68,6 +81,18 @@ def process_referral_rewards(user):
              if referrer:
                  referrer.add_points(merchant.referral_referrer_points)
                  db.session.add(tx)
+
+                 # Notify Referrer (Points)
+                 NotificationService.send_notification(
+                    user_id=user.referred_by_id,
+                    title='Referral Bonus! 👥',
+                    body=f'You earned {merchant.referral_referrer_points} points for referring {user.username}!',
+                    type='referral',
+                    data={
+                        'points_earned': merchant.referral_referrer_points,
+                        'friend_username': user.username
+                    }
+                 )
 
     # 2. Reward Referee (New User)
     if merchant.referral_referee_reward_id:

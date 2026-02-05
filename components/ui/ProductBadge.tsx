@@ -17,7 +17,7 @@ export const ProductBadge: React.FC<ProductBadgeProps> = ({ type, style }) => {
         return (
             <View style={[styles.container, { backgroundColor: '#FFD700', zIndex: 10 }, style]}>
                 <Ionicons name="star" size={10} color="#000" />
-                <Text style={[styles.text, { color: '#000', marginLeft: 2 }]}>Recommended</Text>
+                <Text style={[styles.text, { color: '#000', marginLeft: 3 }]}>Recommended</Text>
             </View>
         );
     }
@@ -39,16 +39,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 6,
-        paddingVertical: 4,
-        borderRadius: 12,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1,
+        paddingVertical: 3,
+        borderRadius: 6,
+        // No shadow/elevation for cleaner look
     },
     text: {
         fontSize: 10,
-        fontWeight: 'bold',
+        fontWeight: '700',
+        letterSpacing: 0.2,
     }
 });

@@ -119,7 +119,7 @@ export const LuckyDrawSuccess = ({ visible, prizeName, prizeType, pointsEarned, 
                         <Pressable style={styles.containerFill} onPress={handleBoxPress}>
                             <Animated.View style={[styles.centerContent, boxStyle]}>
                                 <LottieView
-                                    source={require('@/assets/lottie/Gift.lottie')}
+                                    source={require('@/assets/lottie/Gift.json')}
                                     autoPlay loop
                                     style={{ width: 280, height: 280 }}
                                 />
@@ -134,7 +134,7 @@ export const LuckyDrawSuccess = ({ visible, prizeName, prizeType, pointsEarned, 
                             {/* Light Burst Background */}
                             <View style={styles.burstBackground} pointerEvents="none">
                                 <LottieView
-                                    source={require('@/assets/lottie/Reward light effect.lottie')}
+                                    source={require('@/assets/lottie/Reward light effect.json')}
                                     autoPlay loop
                                     style={{ width: '100%', height: '100%', transform: [{ scale: 1.2 }] }}
                                     resizeMode="contain"
@@ -144,7 +144,7 @@ export const LuckyDrawSuccess = ({ visible, prizeName, prizeType, pointsEarned, 
                             <Animated.View style={[styles.centerContent, contentStyle]}>
                                 {/* Prize Icon or Animation */}
                                 <LottieView
-                                    source={require('@/assets/lottie/Gifts and rewards.lottie')}
+                                    source={require('@/assets/lottie/Gifts and rewards.json')}
                                     autoPlay loop
                                     style={{ width: 300, height: 300, marginBottom: -20 }}
                                 />

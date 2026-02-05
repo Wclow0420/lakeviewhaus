@@ -127,6 +127,21 @@ def award_points():
     db.session.add(tx)
     db.session.commit()
 
+    # Real-time Notification
+    from app.services.notification_service import NotificationService
+    NotificationService.send_notification(
+        user_id=user.id,
+        title='Points Received! 🎉',
+        body=f'You earned {round(points_earned, 2)} points at {current_branch.name}!',
+        type='transaction',
+        data={
+            'points_earned': round(points_earned, 2),
+            'new_balance': round(user.points_balance, 2),
+            'branch_name': current_branch.name,
+            'transaction_id': tx.id
+        }
+    )
+
     return jsonify({
         'message': 'Points awarded successfully',
         'points_earned': round(points_earned, 2),

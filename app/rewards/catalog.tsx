@@ -264,7 +264,7 @@ export default function RewardCatalogScreen() {
                     <View style={styles.luckyDrawContent}>
                         <View style={styles.luckyDrawIcon}>
                             <LottieView
-                                source={require('@/assets/lottie/Gift.lottie')}
+                                source={require('@/assets/lottie/Gift.json')}
                                 autoPlay loop
                                 style={{ width: 60, height: 60 }}
                             />

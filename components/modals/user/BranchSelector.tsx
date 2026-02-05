@@ -4,7 +4,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -21,9 +21,11 @@ interface Branch {
 interface BranchSelectorProps {
     selectedBranchId: number | null;
     onSelectBranch: (branch: Branch) => void;
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
 }
 
-export function BranchSelector({ selectedBranchId, onSelectBranch }: BranchSelectorProps) {
+export function BranchSelector({ selectedBranchId, onSelectBranch, searchQuery, onSearchChange }: BranchSelectorProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
 
@@ -84,7 +86,16 @@ export function BranchSelector({ selectedBranchId, onSelectBranch }: BranchSelec
                 <Text style={[styles.pageTitle, { color: theme.text }]}>Menu</Text>
                 <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground }]}>
                     <Ionicons name="search" size={16} color={theme.icon} style={{ marginRight: 8 }} />
-                    <Text style={{ color: theme.icon, fontSize: 14 }}>Search menu...</Text>
+                    <TextInput
+                        style={[styles.searchInput, { color: theme.text }]}
+                        value={searchQuery}
+                        onChangeText={onSearchChange}
+                        placeholder="Search menu..."
+                        placeholderTextColor={theme.icon}
+                        returnKeyType="search"
+                        clearButtonMode="while-editing"
+                        autoCorrect={false}
+                    />
                 </View>
             </View>
 
@@ -200,6 +211,11 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 18,
         paddingHorizontal: 12,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        height: '100%',
     },
     selectorRow: {
         paddingHorizontal: 16,

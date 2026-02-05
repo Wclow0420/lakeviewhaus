@@ -54,7 +54,7 @@ export const RedemptionSuccess = ({ visible, rewardName, onClose }: RedemptionSu
                 {/* Confetti (One-shot) */}
                 <View style={StyleSheet.absoluteFill} pointerEvents="none">
                     <LottieView
-                        source={require('../../assets/lottie/Confetti.lottie')}
+                        source={require('../../assets/lottie/Confetti.json')}
                         autoPlay
                         loop={false}
                         resizeMode="cover"
@@ -64,7 +64,7 @@ export const RedemptionSuccess = ({ visible, rewardName, onClose }: RedemptionSu
 
                 <Animated.View style={[styles.content, animatedStyle]}>
                     <LottieView
-                        source={require('../../assets/lottie/Coupon.lottie')}
+                        source={require('../../assets/lottie/Coupon.json')}
                         autoPlay
                         loop={false}
                         style={{ width: 250, height: 250 }}

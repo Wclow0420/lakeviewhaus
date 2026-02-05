@@ -1,8 +1,10 @@
+import { Badge } from '@/components/ui/Badge';
 import { SettingsModal } from '@/components/modals/user/SettingsModal';
 import { TransactionHistoryModal } from '@/components/modals/user/TransactionHistoryModal';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Colors, RANKS } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +20,7 @@ const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
     const { logout, user, refreshProfile } = useAuth();
+    const { unreadCount } = useNotifications();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
 
@@ -55,7 +58,7 @@ export default function ProfileScreen() {
         useCallback(() => {
             refreshProfile();
             fetchProfileData();
-        }, [])
+        }, [refreshProfile])
     );
 
     const handleReferralPress = () => {
@@ -120,6 +123,10 @@ export default function ProfileScreen() {
                         </View>
                     </View>
                     <View style={styles.headerRight}>
+                        <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.iconButton}>
+                            <Ionicons name="notifications-outline" size={24} color={theme.text} />
+                            <Badge count={unreadCount} style={{ top: 4, right: 4 }} size={16} />
+                        </TouchableOpacity>
                         <TouchableOpacity onPress={logout} style={styles.iconButton}>
                             <Ionicons name="log-out-outline" size={24} color={theme.text} />
                         </TouchableOpacity>
@@ -212,7 +219,7 @@ export default function ProfileScreen() {
                     <View>
                         <Text style={[styles.bannerTitle, { color: '#2E7D32' }]}>Referral Rewards</Text>
                         <Text style={[styles.bannerDesc, { color: '#388E3C' }]}>
-                            Invite friends & earn 100 points!
+                            Invite friends & earn rewards!
                             {"\n"}Share your code: {referralCode}
                         </Text>
                     </View>
@@ -245,9 +252,9 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         paddingHorizontal: 20,
         paddingTop: 10,
+        paddingBottom: 140,
     },
     header: {
         flexDirection: 'row',

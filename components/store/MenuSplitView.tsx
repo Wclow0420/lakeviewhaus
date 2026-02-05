@@ -9,6 +9,7 @@ import { MenuItem } from './MenuItem';
 interface MenuSplitViewProps {
     branchId: number;
     initialProductId?: number;
+    searchQuery: string;
 }
 
 interface Category {
@@ -29,7 +30,7 @@ interface Product {
     is_active?: boolean;
 }
 
-export function MenuSplitView({ branchId, initialProductId }: MenuSplitViewProps) {
+export function MenuSplitView({ branchId, initialProductId, searchQuery }: MenuSplitViewProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
 
@@ -40,6 +41,9 @@ export function MenuSplitView({ branchId, initialProductId }: MenuSplitViewProps
 
     const sectionListRef = useRef<SectionList>(null);
     const categoryListRef = useRef<FlatList>(null);
+    const isManualScroll = useRef(false);
+    const sectionsRef = useRef<typeof sections>([]);
+    const selectedCategoryIndexRef = useRef(0);
 
     const [refreshing, setRefreshing] = useState(false);
 
@@ -121,6 +125,19 @@ export function MenuSplitView({ branchId, initialProductId }: MenuSplitViewProps
         data: products.filter(p => p.category_id === cat.id)
     })).filter(section => section.data.length > 0); // Only show categories with products
 
+    // Keep refs in sync so the stable onViewableItemsChanged callback sees current values
+    sectionsRef.current = sections;
+    selectedCategoryIndexRef.current = selectedCategoryIndex;
+
+    const filteredProducts = searchQuery.trim()
+        ? products.filter(p => {
+            const q = searchQuery.toLowerCase();
+            return p.name.toLowerCase().includes(q) ||
+                (p.description && p.description.toLowerCase().includes(q));
+        })
+        : [];
+    const isSearching = searchQuery.trim().length > 0;
+
     const calculateSectionOffset = (targetIndex: number): number => {
         let offset = 0;
 
@@ -135,7 +152,11 @@ export function MenuSplitView({ branchId, initialProductId }: MenuSplitViewProps
     };
 
     const handleCategoryPress = (index: number) => {
+        if (index === selectedCategoryIndex) return;
+
+        isManualScroll.current = true;
         setSelectedCategoryIndex(index);
+
         // Scroll to category list first to show selection
         categoryListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
 
@@ -149,22 +170,40 @@ export function MenuSplitView({ branchId, initialProductId }: MenuSplitViewProps
                 y: offset,
                 animated: true
             });
+
+            // Re-enable auto-sync after scroll animation (approx 800ms)
+            setTimeout(() => {
+                isManualScroll.current = false;
+            }, 800);
         }
     };
 
     const handleViewableItemsChanged = useRef(({ viewableItems }: any) => {
+        if (isManualScroll.current) return;
+
         if (viewableItems.length > 0) {
-            const firstItem = viewableItems[0];
-            if (firstItem.section) {
-                // Find index of this section
-                const sectionTitle = firstItem.section.title;
-                const index = sections.findIndex(s => s.title === sectionTitle);
-                if (index !== -1) {
+            // Find the most visible item's section
+            const visibleItem = viewableItems[0];
+
+            if (visibleItem.section) {
+                const sectionTitle = visibleItem.section.title;
+                const index = sectionsRef.current.findIndex(s => s.title === sectionTitle);
+
+                if (index !== -1 && index !== selectedCategoryIndexRef.current) {
                     setSelectedCategoryIndex(index);
-                    categoryListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+                    categoryListRef.current?.scrollToIndex({
+                        index: index,
+                        animated: true,
+                        viewPosition: 0.5
+                    });
                 }
             }
         }
+    }).current;
+
+    const viewabilityConfig = useRef({
+        itemVisiblePercentThreshold: 10, // More sensitive
+        waitForInteraction: false,
     }).current;
 
     if (loading) {
@@ -181,97 +220,131 @@ export function MenuSplitView({ branchId, initialProductId }: MenuSplitViewProps
 
     return (
         <View style={styles.container}>
-            {/* Sidebar */}
-            <View style={[styles.sidebar, { backgroundColor: '#F5F5F5' }]}>
-                <FlatList
-                    ref={categoryListRef}
-                    data={sections}
-                    keyExtractor={(item) => item.id.toString()}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={({ item, index }) => {
-                        const isSelected = selectedCategoryIndex === index;
-
-                        return (
-                            <TouchableOpacity
-                                style={[
-                                    styles.sidebarItem,
-                                    isSelected && { backgroundColor: '#FFFFFF' }
-                                ]}
-                                onPress={() => handleCategoryPress(index)}
-                            >
-                                {/* Category Image Circle */}
-                                <View style={[
-                                    styles.categoryImageContainer,
-                                    isSelected && { borderColor: theme.primary, borderWidth: 2 },
-                                    !item.image_url && { justifyContent: 'center', alignItems: 'center' }
-                                ]}>
-                                    {item.image_url ? (
-                                        <Image
-                                            source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_URL}${item.image_url}` }}
-                                            style={styles.categoryImage}
-                                            resizeMode="cover"
+            <View style={styles.contentRow}>
+                {isSearching ? (
+                    /* Full-width search results */
+                    filteredProducts.length > 0 ? (
+                        <FlatList
+                            style={{ flex: 1 }}
+                            data={filteredProducts}
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={({ item, index }) => {
+                                const isLast = index === filteredProducts.length - 1;
+                                return (
+                                    <View style={[styles.categoryContainer, styles.searchResultItem, isLast && { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, marginBottom: 12 }]}>
+                                        <MenuItem
+                                            item={item}
+                                            onPress={() => console.log('Press Item', item)}
+                                            isLast={isLast}
                                         />
-                                    ) : (
-                                        <Ionicons name="restaurant" size={24} color={isSelected ? theme.primary : theme.icon} />
-                                    )}
-                                </View>
-
-                                {/* Category Name */}
-                                <Text style={[
-                                    styles.sidebarText,
-                                    { color: isSelected ? theme.text : theme.icon },
-                                    isSelected && { fontWeight: '700' }
-                                ]} numberOfLines={2}>
-                                    {item.title}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    }}
-                />
-            </View>
-
-            {/* Main Content */}
-            <View style={[styles.content, { backgroundColor: '#F8F8F8' }]}>
-                <SectionList
-                    ref={sectionListRef}
-                    sections={sections}
-                    keyExtractor={(item) => item.id.toString()}
-                    stickySectionHeadersEnabled={true}
-                    renderSectionHeader={({ section: { title } }: any) => (
-                        <View style={[styles.sectionHeader, { backgroundColor: '#F8F8F8' }]}>
-                            <View style={styles.sectionHeaderInner}>
-                                <Text style={[styles.sectionHeaderText, { color: theme.text }]}>{title}</Text>
-                            </View>
+                                    </View>
+                                );
+                            }}
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={{ paddingBottom: 300 }}
+                        />
+                    ) : (
+                        <View style={styles.emptySearch}>
+                            <Ionicons name="search-outline" size={40} color="#CCC" />
+                            <Text style={styles.emptySearchText}>No results for "{searchQuery}"</Text>
                         </View>
-                    )}
-                    renderItem={({ item, section }) => {
-                        // Check if this is the last item in the section
-                        const isLastItem = section.data[section.data.length - 1].id === item.id;
+                    )
+                ) : (
+                    /* Normal sidebar + section list layout */
+                    <>
+                        {/* Sidebar */}
+                        <View style={[styles.sidebar, { backgroundColor: '#F5F5F5' }]}>
+                            <FlatList
+                                ref={categoryListRef}
+                                data={sections}
+                                keyExtractor={(item) => item.id.toString()}
+                                showsVerticalScrollIndicator={false}
+                                renderItem={({ item, index }) => {
+                                    const isSelected = selectedCategoryIndex === index;
 
-                        return (
-                            <View style={[
-                                styles.categoryContainer,
-                                isLastItem && { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, marginBottom: 12 }
-                            ]}>
-                                <MenuItem
-                                    item={item}
-                                    onPress={() => console.log('Press Item', item)}
-                                    onAdd={() => console.log('Add to cart', item)}
-                                    isLast={isLastItem}
-                                />
-                            </View>
-                        );
-                    }}
-                    onViewableItemsChanged={handleViewableItemsChanged}
-                    viewabilityConfig={{
-                        itemVisiblePercentThreshold: 50
-                    }}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.primary]} tintColor={theme.primary} />
-                    }
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 300 }}
-                />
+                                    return (
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.sidebarItem,
+                                                isSelected && { backgroundColor: '#FFFFFF' }
+                                            ]}
+                                            onPress={() => handleCategoryPress(index)}
+                                        >
+                                            {/* Category Image Circle */}
+                                            <View style={[
+                                                styles.categoryImageContainer,
+                                                isSelected && { borderColor: theme.primary, borderWidth: 2 },
+                                                !item.image_url && { justifyContent: 'center', alignItems: 'center' }
+                                            ]}>
+                                                {item.image_url ? (
+                                                    <Image
+                                                        source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_URL}${item.image_url}` }}
+                                                        style={styles.categoryImage}
+                                                        resizeMode="cover"
+                                                    />
+                                                ) : (
+                                                    <Ionicons name="restaurant" size={24} color={isSelected ? theme.primary : theme.icon} />
+                                                )}
+                                            </View>
+
+                                            {/* Category Name */}
+                                            <Text style={[
+                                                styles.sidebarText,
+                                                { color: isSelected ? theme.text : theme.icon },
+                                                isSelected && { fontWeight: '700' }
+                                            ]} numberOfLines={2}>
+                                                {item.title}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                }}
+                            />
+                        </View>
+
+                        {/* Main Content */}
+                        <View style={[styles.content, { backgroundColor: '#F8F8F8' }]}>
+                            <SectionList
+                                ref={sectionListRef}
+                                sections={sections}
+                                keyExtractor={(item) => item.id.toString()}
+                                stickySectionHeadersEnabled={true}
+                                renderSectionHeader={({ section: { title } }: any) => (
+                                    <View style={[styles.sectionHeader, { backgroundColor: '#F8F8F8' }]}>
+                                        <View style={styles.sectionHeaderInner}>
+                                            <Text style={[styles.sectionHeaderText, { color: theme.text }]}>{title}</Text>
+                                        </View>
+                                    </View>
+                                )}
+                                renderItem={({ item, section }) => {
+                                    // Check if this is the last item in the section
+                                    const isLastItem = section.data[section.data.length - 1].id === item.id;
+
+                                    return (
+                                        <View style={[
+                                            styles.categoryContainer,
+                                            isLastItem && { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, marginBottom: 12 }
+                                        ]}>
+                                            <MenuItem
+                                                item={item}
+                                                onPress={() => console.log('Press Item', item)}
+                                                isLast={isLastItem}
+                                            />
+                                        </View>
+                                    );
+                                }}
+                                onViewableItemsChanged={handleViewableItemsChanged}
+                                viewabilityConfig={viewabilityConfig}
+                                refreshControl={
+                                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+                                }
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={{ paddingBottom: 300 }}
+                                onScrollBeginDrag={() => { isManualScroll.current = false; }}
+                                onMomentumScrollBegin={() => { isManualScroll.current = false; }}
+                            />
+                        </View>
+                    </>
+                )}
             </View>
         </View>
     );
@@ -280,7 +353,6 @@ export function MenuSplitView({ branchId, initialProductId }: MenuSplitViewProps
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        flexDirection: 'row',
     },
     loading: {
         flex: 1,
@@ -340,5 +412,22 @@ const styles = StyleSheet.create({
     categoryContainer: {
         backgroundColor: '#FFFFFF',
         marginHorizontal: 12,
+    },
+    contentRow: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    searchResultItem: {
+        marginHorizontal: 12,
+    },
+    emptySearch: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 12,
+    },
+    emptySearchText: {
+        fontSize: 14,
+        color: '#999',
     },
 });

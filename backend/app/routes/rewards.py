@@ -5,6 +5,7 @@ from app.models.reward import Reward, UserReward
 from app.models.user import User
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
+from app.services.notification_service import NotificationService
 
 bp = Blueprint('rewards', __name__, url_prefix='/rewards')
 
@@ -586,6 +587,19 @@ def validate_redemption():
     user_reward.used_by_branch_id = current_branch.id
 
     db.session.commit()
+
+    # Send Notification to User
+    NotificationService.send_notification(
+        user_id=user_reward.user_id,
+        title='Voucher Redeemed! ✅',
+        body=f'Your {reward.title} voucher has been successfully redeemed.',
+        type='voucher_redeemed',
+        data={
+            'redemption_code': user_reward.redemption_code,
+            'reward_name': reward.title,
+            'branch_name': current_branch.name
+        }
+    )
 
     return jsonify({
         'message': 'Reward validated and marked as used',

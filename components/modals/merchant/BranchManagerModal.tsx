@@ -211,7 +211,7 @@ export const BranchManagerModal: React.FC<BranchManagerModalProps> = ({ visible,
                         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
                         style={{ flex: 1 }}
                     >
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1, paddingHorizontal: 24 }}>
                             <TouchableOpacity onPress={() => setShowForm(false)} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
                                 <Ionicons name="arrow-back" size={24} color={theme.text} />
                                 <Text style={{ color: theme.text, marginLeft: 8, fontSize: 16, fontWeight: '600' }}>
@@ -266,7 +266,7 @@ export const BranchManagerModal: React.FC<BranchManagerModalProps> = ({ visible,
                         </View>
                     </KeyboardAvoidingView>
                 ) : (
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, paddingHorizontal: 24 }}>
                         {loadingBranches ? (
                             <ActivityIndicator color={theme.primary} style={{ marginTop: 40 }} />
                         ) : (

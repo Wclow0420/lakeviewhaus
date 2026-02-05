@@ -1,8 +1,10 @@
 import { RankUpSuccess } from '@/components/gamification/RankUpSuccess';
 import { api } from '@/services/api';
+import { socketService } from '@/services/socket';
 import { useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 
 
 // Define the shape of the context
@@ -67,6 +69,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
         checkAuth();
     }, []);
+
+    // Socket Initialization & Event Listeners
+    useEffect(() => {
+        if (!user) return;
+
+        // Initialize Socket
+        const initSocket = async () => {
+            await socketService.init();
+        };
+
+        initSocket();
+
+        return () => {
+            // socketService.disconnect();
+        };
+    }, [user]);
 
     useEffect(() => {
         if (isLoading) return;

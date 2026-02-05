@@ -2,6 +2,7 @@ import { BaseModal } from '@/components/ui/BaseModal';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -13,6 +14,7 @@ interface RewardQRModalProps {
     redemptionCode: string;
     expiresAt: string;
     rewardDescription?: string;
+    status: 'active' | 'used' | 'expired' | 'cancelled';
 }
 
 export const RewardQRModal: React.FC<RewardQRModalProps> = ({
@@ -21,7 +23,8 @@ export const RewardQRModal: React.FC<RewardQRModalProps> = ({
     rewardTitle,
     redemptionCode,
     expiresAt,
-    rewardDescription
+    rewardDescription,
+    status
 }) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
@@ -57,14 +60,30 @@ export const RewardQRModal: React.FC<RewardQRModalProps> = ({
                     )}
                 </View>
 
-                {/* QR Code */}
+                {/* QR Code with Redeemed Overlay */}
                 <View style={[styles.qrContainer, { backgroundColor: '#fff' }]}>
-                    <QRCode
-                        value={redemptionCode}
-                        size={220}
-                        backgroundColor="#ffffff"
-                        color="#000000"
-                    />
+                    <View style={{ opacity: status === 'used' ? 0.15 : 1 }}>
+                        <QRCode
+                            value={redemptionCode}
+                            size={220}
+                            backgroundColor="#ffffff"
+                            color="#000000"
+                        />
+                    </View>
+
+                    {status === 'used' && (
+                        <View style={styles.overlayContainer} pointerEvents="none">
+                            <View style={styles.watermarkContainer}>
+                                <Text style={styles.watermarkText}>REDEEMED</Text>
+                            </View>
+                            <LottieView
+                                source={require('../../../assets/lottie/Checkmark.json')}
+                                autoPlay
+                                loop={false}
+                                style={{ width: 140, height: 140 }}
+                            />
+                        </View>
+                    )}
                 </View>
 
                 {/* Redemption Code */}
@@ -128,6 +147,31 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
+        minHeight: 268,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    overlayContainer: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    watermarkContainer: {
+        position: 'absolute',
+        transform: [{ rotate: '-15deg' }],
+        borderWidth: 4,
+        borderColor: '#4CAF50',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        opacity: 0.8,
+    },
+    watermarkText: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#4CAF50',
+        letterSpacing: 4,
     },
     codeSection: {
         alignItems: 'center',

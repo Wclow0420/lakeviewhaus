@@ -16,6 +16,7 @@ export default function StoreScreen() {
     const paramProductId = params.productId ? Number(params.productId) : undefined;
 
     const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // React to param changes
     useEffect(() => {
@@ -31,12 +32,14 @@ export default function StoreScreen() {
                 <BranchSelector
                     selectedBranchId={selectedBranchId}
                     onSelectBranch={(branch) => setSelectedBranchId(branch.id)}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
                 />
             </View>
 
             {/* Menu Content */}
             {selectedBranchId ? (
-                <MenuSplitView branchId={selectedBranchId} initialProductId={paramProductId} />
+                <MenuSplitView branchId={selectedBranchId} initialProductId={paramProductId} searchQuery={searchQuery} />
             ) : (
                 <View style={styles.placeholder} />
             )}

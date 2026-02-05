@@ -4,10 +4,11 @@ import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
+import { socketService } from '@/services/socket';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -64,6 +65,34 @@ export default function VouchersScreen() {
             setRefreshing(false);
         }
     };
+
+    // Socket Listener for Real-Time Updates
+    useEffect(() => {
+        const handleNewNotification = (data: any) => {
+            if (data.type === 'voucher_redeemed') {
+                const redemptionCode = data.data?.redemption_code;
+
+                // 1. Update List
+                setRewards(prevRewards => prevRewards.map(r => {
+                    if (r.redemption_code === redemptionCode) {
+                        return { ...r, status: 'used', used_at: new Date().toISOString() };
+                    }
+                    return r;
+                }));
+
+                // 2. Update Modal if open
+                if (selectedReward && selectedReward.redemption_code === redemptionCode) {
+                    setSelectedReward(prev => prev ? { ...prev, status: 'used' } : null);
+                }
+            }
+        };
+
+        socketService.on('new_notification', handleNewNotification);
+
+        return () => {
+            socketService.off('new_notification', handleNewNotification);
+        };
+    }, [selectedReward]);
 
     useFocusEffect(
         useCallback(() => {
@@ -317,6 +346,7 @@ export default function VouchersScreen() {
                     redemptionCode={selectedReward.redemption_code}
                     expiresAt={selectedReward.expires_at}
                     rewardDescription={selectedReward.reward.description}
+                    status={selectedReward.status}
                 />
             )}
         </ScreenWrapper>

@@ -252,6 +252,8 @@ def spin_lucky_draw(draw_id):
 
     db.session.commit()
 
+
+
     return jsonify({
         'message': 'Spin successful!',
         'prize': {

@@ -165,7 +165,7 @@ export default function LuckyDrawDetailScreen() {
                         style={styles.gradientHeader}
                     >
                         <LottieView
-                            source={require('@/assets/lottie/Gift.lottie')}
+                            source={require('@/assets/lottie/Gift.json')}
                             autoPlay loop
                             style={{ width: 150, height: 150 }}
                         />

@@ -225,7 +225,7 @@ export default function RewardsScreen() {
                     <View style={styles.luckyDrawContent}>
                         <View style={styles.luckyDrawIcon}>
                             <LottieView
-                                source={require('@/assets/lottie/Gift.lottie')}
+                                source={require('@/assets/lottie/Gift.json')}
                                 autoPlay loop
                                 style={{ width: 80, height: 80 }}
                             />

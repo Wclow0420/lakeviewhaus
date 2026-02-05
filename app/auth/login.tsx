@@ -5,11 +5,14 @@ import { Colors, Layout } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -20,6 +23,17 @@ export default function LoginScreen() {
     const [secretTaps, setSecretTaps] = useState(0); // Secret reveal state
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
+    const [showBiometric, setShowBiometric] = useState(false);
+
+    useEffect(() => {
+        const checkBiometric = async () => {
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+            const saved = await SecureStore.getItemAsync('biometric_user');
+            setShowBiometric(hasHardware && isEnrolled && !!saved);
+        };
+        checkBiometric();
+    }, []);
 
     const handleLogin = async () => {
         setLoading(true);
@@ -30,7 +44,7 @@ export default function LoginScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
             await login(response.access_token, response.refresh_token, response.user);
-            // Router redirect handled by AuthContext automatically
+            promptSaveBiometric(identifier, password);
 
         } catch (error: any) {
             setLoading(false);
@@ -53,6 +67,65 @@ export default function LoginScreen() {
             } else {
                 Alert.alert('Login Failed', error.error || 'Invalid credentials');
             }
+        }
+    };
+
+    const promptSaveBiometric = async (id: string, pw: string) => {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        if (!hasHardware || !isEnrolled) return;
+
+        const alreadySaved = await SecureStore.getItemAsync('biometric_user');
+        const saveCreds = () => SecureStore.setItemAsync('biometric_user', JSON.stringify({ identifier: id, password: pw }));
+
+        if (!alreadySaved) {
+            Alert.alert(
+                'Save Login',
+                'Would you like to use biometrics for faster sign in next time?',
+                [
+                    { text: 'Not Now', style: 'cancel' },
+                    { text: 'Yes', onPress: () => { saveCreds(); setShowBiometric(true); } }
+                ]
+            );
+        } else {
+            const { identifier: savedId } = JSON.parse(alreadySaved);
+            if (savedId !== id) {
+                Alert.alert(
+                    'Replace Saved Login',
+                    `You have a different account saved for biometrics. Replace with this one?`,
+                    [
+                        { text: 'Not Now', style: 'cancel' },
+                        { text: 'Replace', onPress: () => { saveCreds(); setShowBiometric(true); } }
+                    ]
+                );
+            }
+        }
+    };
+
+    const handleBiometricLogin = async () => {
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Sign in to Lakeview Haus',
+                cancelLabel: 'Cancel',
+                disableDeviceFallback: Constants.isDevice,
+            });
+            if (!result.success) return;
+
+            const saved = await SecureStore.getItemAsync('biometric_user');
+            if (!saved) return;
+
+            const { identifier: savedId, password: savedPw } = JSON.parse(saved);
+            setLoading(true);
+            const response = await api.post('/auth/login', { identifier: savedId, password: savedPw });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            await login(response.access_token, response.refresh_token, response.user);
+        } catch (error: any) {
+            setLoading(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            // Credentials are stale — clear and nudge to manual login
+            await SecureStore.deleteItemAsync('biometric_user');
+            setShowBiometric(false);
+            Alert.alert('Biometric Login Failed', 'Your saved login is outdated. Please sign in manually.');
         }
     };
 
@@ -96,6 +169,18 @@ export default function LoginScreen() {
                     loading={loading}
                     style={{ marginTop: Layout.spacing.lg }}
                 />
+
+                {/* Biometric Login Button */}
+                {showBiometric && (
+                    <View style={{ alignItems: 'center', marginTop: 24 }}>
+                        <TouchableOpacity
+                            style={[styles.biometricButton, { backgroundColor: theme.inputBackground }]}
+                            onPress={handleBiometricLogin}
+                        >
+                            <MaterialCommunityIcons name="face-recognition" size={28} color={theme.primary} />
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 <View style={styles.footer}>
                     <Text style={{ color: theme.icon }}>Don't have an account? </Text>
@@ -148,5 +233,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         marginTop: Layout.spacing.xl,
+    },
+    biometricButton: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

@@ -176,7 +176,7 @@ export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescrip
                         <Pressable style={styles.containerFill} onPress={handleBoxPress}>
                             <Animated.View style={[styles.centerContent, boxStyle]}>
                                 <LottieView
-                                    source={require('../../assets/lottie/Gift.lottie')}
+                                    source={require('../../assets/lottie/Gift.json')}
                                     autoPlay loop
                                     style={{ width: 250, height: 250 }}
                                 />
@@ -191,7 +191,7 @@ export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescrip
                             {/* Light Burst Background */}
                             <View style={{ position: 'absolute', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
                                 <LottieView
-                                    source={require('../../assets/lottie/Reward light effect.lottie')}
+                                    source={require('../../assets/lottie/Reward light effect.json')}
                                     autoPlay loop
                                     style={{ width: '100%', height: '100%', transform: [{ scale: 1.2 }] }}
                                     resizeMode="contain"
@@ -201,7 +201,7 @@ export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescrip
                             <Animated.View style={[styles.centerContent, contentStyle]}>
                                 {/* Gift Icon Animation */}
                                 <LottieView
-                                    source={require('../../assets/lottie/Gifts and rewards.lottie')}
+                                    source={require('../../assets/lottie/Gifts and rewards.json')}
                                     autoPlay loop
                                     style={{ width: 350, height: 350, marginBottom: -20 }}
                                 />
@@ -220,7 +220,7 @@ export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescrip
                                 {/* Confetti Background */}
                                 <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]} pointerEvents="none">
                                     <LottieView
-                                        source={require('../../assets/lottie/Confetti.lottie')}
+                                        source={require('../../assets/lottie/Confetti.json')}
                                         autoPlay loop={false}
                                         resizeMode="cover"
                                         style={{ width: '100%', height: '100%' }}
@@ -229,7 +229,7 @@ export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescrip
 
                                 <Animated.View style={fireStyle}>
                                     <LottieView
-                                        source={require('../../assets/lottie/Fire.lottie')}
+                                        source={require('../../assets/lottie/Fire.json')}
                                         autoPlay loop
                                         style={{ width: 200, height: 200 }}
                                     />

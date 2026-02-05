@@ -45,11 +45,16 @@ def create_app():
     CORS(app)
     limiter.init_app(app)
 
+    # Initialize SocketIO
+    from app.services.socket_service import socketio
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet')
+
     # Import models explicitly so Alembic sees them and they are registered with SQLAlchemy
     from app.models.user import User
     from app.models.check_in import DailyCheckIn
     from app.models.merchant import Merchant, Branch
     from app.models.transaction import Transaction
+    from app.models.notification import Notification
     from app.models.reward import Reward, UserReward, UserVoucher
     from app.models.menu import MenuCategory, Product, ProductOptionGroup, ProductOption, Collection, CollectionItem
     from app.models.marketing import HomeBanner, HomeTopPick
@@ -78,6 +83,12 @@ def create_app():
     from app.routes import merchant_lucky_draw, user_lucky_draw
     app.register_blueprint(merchant_lucky_draw.bp)
     app.register_blueprint(user_lucky_draw.bp)
+
+    from app.routes import websocket_debug
+    app.register_blueprint(websocket_debug.bp)
+
+    from app.routes import notifications
+    app.register_blueprint(notifications.bp)
 
     @app.route('/')
     def hello():

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import LottieView from 'lottie-react-native';
 
 interface Product {
     id: number;
@@ -21,11 +22,10 @@ interface Product {
 interface MenuItemProps {
     item: Product;
     onPress?: (item: Product) => void;
-    onAdd?: (item: Product) => void;
     isLast?: boolean;
 }
 
-export const MenuItem = React.memo(({ item, onPress, onAdd, isLast }: MenuItemProps) => {
+export const MenuItem = React.memo(({ item, onPress, isLast }: MenuItemProps) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
     const isInactive = item.is_active === false;
@@ -58,7 +58,7 @@ export const MenuItem = React.memo(({ item, onPress, onAdd, isLast }: MenuItemPr
                         resizeMode="cover"
                     />
                 ) : (
-                    <View style={[styles.placeholder, { backgroundColor: theme.inputBackground }]}>
+                    <View style={styles.placeholder}>
                         <Ionicons name="cafe-outline" size={32} color={theme.icon} />
                     </View>
                 )}
@@ -73,8 +73,17 @@ export const MenuItem = React.memo(({ item, onPress, onAdd, isLast }: MenuItemPr
                 )}
 
                 {/* Badges - Overlay */}
-                {!isInactive && item.is_new && <ProductBadge type="new" style={{ top: -6, left: -6 }} />}
-                {!isInactive && item.is_recommended && <ProductBadge type="recommended" style={{ bottom: -6, right: -6 }} />}
+                {!isInactive && item.is_recommended && (
+                    <View style={styles.lottieBadge}>
+                        <LottieView
+                            source={require('@/assets/lottie/recomended.json')}
+                            autoPlay
+                            loop
+                            style={{ width: 40, height: 40 }}
+                        />
+                    </View>
+                )}
+                {!isInactive && item.is_new && !item.is_recommended && <ProductBadge type="new" style={{ top: 4, left: 4 }} />}
             </View>
 
             {/* Content Section */}
@@ -87,23 +96,7 @@ export const MenuItem = React.memo(({ item, onPress, onAdd, isLast }: MenuItemPr
                     </Text>
                 ) : null}
 
-                <View style={styles.footer}>
-                    <View style={styles.priceContainer}>
-                        <Text style={[styles.price, isInactive && { color: theme.icon }]}>RM {item.price.toFixed(2)}</Text>
-                    </View>
-
-                    {!isInactive && (
-                        <TouchableOpacity
-                            style={[styles.addButton, { backgroundColor: theme.primary }]}
-                            onPress={() => {
-                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                onAdd?.(item);
-                            }}
-                        >
-                            <Ionicons name="add" size={20} color="#000" />
-                        </TouchableOpacity>
-                    )}
-                </View>
+                <Text style={[styles.price, isInactive && { color: theme.icon }]}>RM {item.price.toFixed(2)}</Text>
             </View>
         </TouchableOpacity>
     );
@@ -121,8 +114,14 @@ const styles = StyleSheet.create({
         width: 86,
         height: 86,
         borderRadius: 8,
-        overflow: 'visible',
+        overflow: 'visible', // Allow Lottie to overflow if needed, or keep it contained
         marginRight: 12,
+    },
+    lottieBadge: {
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        zIndex: 10,
     },
     image: {
         width: '100%',
@@ -135,6 +134,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 8,
+        backgroundColor: '#F0F0F0',
     },
     content: {
         flex: 1,
@@ -151,27 +151,10 @@ const styles = StyleSheet.create({
         marginTop: 4,
         color: '#999',
     },
-    footer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    priceContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
     price: {
         fontSize: 17,
         fontWeight: '700',
         color: '#E53935',
-    },
-    addButton: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     inactiveOverlay: {
         position: 'absolute',

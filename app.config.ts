@@ -87,6 +87,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             bundleIdentifier: bundleIdentifier,
             buildNumber: appVersion,
             icon: IOS_ICON, // ✅ Explicit iOS Icon
+            infoPlist: {
+                NSFaceIDUsageDescription: "Lakeview Haus uses Face ID to sign you in quickly and securely.",
+            },
         },
 
         // === Android ===
@@ -138,7 +141,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
                 {
                     "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan QR codes."
                 }
-            ]
+            ],
+            "./withPermissionDescriptions"
         ],
 
         // === Experiments ===

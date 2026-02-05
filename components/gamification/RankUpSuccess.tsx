@@ -104,7 +104,7 @@ export const RankUpSuccess = ({ visible, newRank, onClose }: RankUpSuccessProps)
                         <Pressable style={styles.centerContainer} onPress={onRocketFinish}>
                             <LottieView
                                 ref={rocketRef}
-                                source={require('../../assets/lottie/Rocket.lottie')}
+                                source={require('../../assets/lottie/Rocket.json')}
                                 autoPlay
                                 loop={false}
                                 resizeMode="contain"
@@ -123,7 +123,7 @@ export const RankUpSuccess = ({ visible, newRank, onClose }: RankUpSuccessProps)
                         {/* Confetti Background */}
                         <View style={StyleSheet.absoluteFill} pointerEvents="none">
                             <LottieView
-                                source={require('../../assets/lottie/Confetti.lottie')}
+                                source={require('../../assets/lottie/Confetti.json')}
                                 autoPlay
                                 loop={false}
                                 resizeMode="cover"
@@ -133,7 +133,7 @@ export const RankUpSuccess = ({ visible, newRank, onClose }: RankUpSuccessProps)
 
                         <Animated.View style={[styles.content, badgeAnimatedStyle]}>
                             <LottieView
-                                source={require('../../assets/lottie/card_upgrade.lottie')}
+                                source={require('../../assets/lottie/card_upgrade.json')}
                                 autoPlay
                                 loop
                                 style={{ width: 300, height: 300 }}

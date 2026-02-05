@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import LottieView from 'lottie-react-native';
 
 // Interfaces (Matches Backend)
 interface Branch { id: number; name: string; is_main: boolean; }
@@ -380,7 +381,16 @@ export default function MerchantMenuScreen() {
                         <Ionicons name="fast-food-outline" size={24} color={theme.icon} />
                     )}
                     {item.is_new && <ProductBadge type="new" style={{ top: -6, left: -6 }} />}
-                    {item.is_recommended && <ProductBadge type="recommended" style={{ bottom: -6, right: -6 }} />}
+                    {item.is_recommended && (
+                        <View style={{ position: 'absolute', top: -6, right: -6, zIndex: 10 }}>
+                            <LottieView
+                                source={require('@/assets/lottie/recomended.json')}
+                                autoPlay
+                                loop
+                                style={{ width: 34, height: 34 }}
+                            />
+                        </View>
+                    )}
                 </View>
                 <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text numberOfLines={1} style={[styles.prodName, { color: theme.text }]}>{item.name}</Text>

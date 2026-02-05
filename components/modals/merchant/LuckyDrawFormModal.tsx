@@ -201,17 +201,7 @@ export function LuckyDrawFormModal({ visible, onClose, draw }: Props) {
               placeholder="Enter description (optional)"
               multiline
               numberOfLines={3}
-              style={{ minHeight: 80, paddingTop: 12, textAlignVertical: 'top' }}
-            />
-
-            {/* Image URL */}
-            <Input
-              label="Image URL"
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              placeholder="https://example.com/image.jpg"
-              autoCapitalize="none"
-              keyboardType="url"
+              style={{ minHeight: 80, paddingTop: 12, textAlignVertical: 'top', marginBottom: 20 }}
             />
 
             {/* Day 7 Draw Toggle */}
