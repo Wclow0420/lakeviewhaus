@@ -23,7 +23,7 @@ def get_current_branch():
 def resolve_branch(current_branch):
     target_id = request.args.get('target_branch_id')
     if target_id and current_branch.is_main:
-        return int(target_id)
+        return target_id
     return current_branch.id
 
 # --- CATEGORIES ---
@@ -68,7 +68,7 @@ def create_category():
     db.session.commit()
     return jsonify(new_cat.to_dict()), 201
 
-@bp.route('/categories/<int:id>', methods=['PUT', 'DELETE'])
+@bp.route('/categories/<id>', methods=['PUT', 'DELETE'])
 @jwt_required()
 def manage_category(id):
     current_branch = get_current_branch()
@@ -193,7 +193,7 @@ def create_product():
     db.session.commit()
     return jsonify(new_product.to_dict()), 201
 
-@bp.route('/products/<int:id>', methods=['PUT', 'DELETE'])
+@bp.route('/products/<id>', methods=['PUT', 'DELETE'])
 @jwt_required()
 def manage_product(id):
     current_branch = get_current_branch()
@@ -330,7 +330,7 @@ def create_collection():
     return jsonify(new_col.to_dict()), 201
 
 # Collection UPDATE (Missing from previous file, might as well add simple one)
-@bp.route('/collections/<int:id>', methods=['PUT'])
+@bp.route('/collections/<id>', methods=['PUT'])
 @jwt_required()
 def update_collection(id):
     current_branch = get_current_branch()

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -53,6 +54,7 @@ export default function RegisterScreen() {
 
     const handleRegister = async () => {
         if (!isFormValid) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             Alert.alert('Invalid Form', 'Please fix the errors before proceeding.');
             return;
         }
@@ -73,11 +75,13 @@ export default function RegisterScreen() {
                 referral_code: referralCode
             });
             setLoading(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert('Success', 'Account created! Please verify your phone.', [
-                { text: 'Verify Now', onPress: () => router.push({ pathname: '/auth/verify', params: { phone, email } }) }
+                { text: 'Verify Now', onPress: () => router.push({ pathname: '/auth/verify', params: { phone: finalPhone, email } }) }
             ]);
         } catch (error: any) {
             setLoading(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert('Registration Failed', error.error || 'Something went wrong');
         }
     };

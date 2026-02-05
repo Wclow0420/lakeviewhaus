@@ -1,12 +1,13 @@
 from app import db
 from datetime import datetime
+import uuid6
 
 class Transaction(db.Model):
     __tablename__ = 'transactions'
     
-    id = db.Column(db.Integer, primary_key=True)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
-    member_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    branch_id = db.Column(db.String(36), db.ForeignKey('branches.id'), nullable=False)
+    member_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     amount_spent = db.Column(db.Float, nullable=False) # e.g. RM 10.50
     points_earned = db.Column(db.Float, nullable=False)
     transaction_type = db.Column(db.String(50), default='purchase')

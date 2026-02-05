@@ -1,7 +1,7 @@
 import { SettingsModal } from '@/components/modals/user/SettingsModal';
 import { TransactionHistoryModal } from '@/components/modals/user/TransactionHistoryModal';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors } from '@/constants/theme';
+import { Colors, RANKS } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
@@ -14,33 +14,7 @@ import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'rea
 
 const { width } = Dimensions.get('window');
 
-// Rank Styling Definitions (Matches Home Screen)
-const RANKS = {
-    Bronze: {
-        gradient: ['#a55435ff', '#e0a270ff', '#ffc6a0ff', '#e0a270ff', '#a55435ff'],
-        text: '#000000',
-        accent: '#A17F5D', // Bronze
-        badgeText: '#A17F5D',
-    },
-    Silver: {
-        gradient: ['#ffffffff', '#bbbbbbff', '#f1f1f1ff', '#a3a3a3ff', '#4e4e4eff'],
-        text: '#080000ff',
-        accent: '#757575', // Silver
-        badgeText: '#757575',
-    },
-    Gold: {
-        gradient: ['#feedd7ff', '#c6a681ff', '#ffce93ff', '#c18a4aff', '#613d13ff'],
-        text: '#443203ff',
-        accent: '#FCD259', // Brand Yellow
-        badgeText: '#856404',
-    },
-    Platinum: {
-        gradient: ['#6a8eadff', '#98b1c5ff', '#c1d1dcff', '#98b1c5ff', '#6a8eadff'],
-        text: '#001828ff',
-        accent: '#FFFFFF',
-        badgeText: '#ffffffff',
-    }
-};
+
 
 export default function ProfileScreen() {
     const { logout, user, refreshProfile } = useAuth();
@@ -50,7 +24,6 @@ export default function ProfileScreen() {
     // State
     const [activeVouchersCount, setActiveVouchersCount] = useState(0);
     const [streak, setStreak] = useState(0);
-    const [currentPoints, setCurrentPoints] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -71,13 +44,6 @@ export default function ProfileScreen() {
 
             if (statusRes) {
                 setStreak(statusRes.total_streak || 0);
-
-                // Use lifetime points for rank calculation (similar to Home)
-                if (statusRes.points_lifetime !== undefined) {
-                    setCurrentPoints(statusRes.points_lifetime);
-                } else if (statusRes.points !== undefined) {
-                    setCurrentPoints(statusRes.points);
-                }
             }
         } catch (error) {
             console.error('Failed to fetch profile data:', error);
@@ -89,14 +55,6 @@ export default function ProfileScreen() {
         useCallback(() => {
             refreshProfile();
             fetchProfileData();
-            // Determine initial points from user object if not yet fetched
-            if (currentPoints === undefined) {
-                if (user?.points_lifetime) {
-                    setCurrentPoints(user.points_lifetime);
-                } else if (user?.points) {
-                    setCurrentPoints(user.points);
-                }
-            }
         }, [])
     );
 
@@ -113,7 +71,7 @@ export default function ProfileScreen() {
     };
 
     // Rank Logic
-    const points = currentPoints !== undefined ? currentPoints : (user?.points_lifetime || user?.points || 0);
+    const points = user?.points_lifetime || user?.points || 0;
     let rank: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' = 'Bronze';
     if (points >= 5000) {
         rank = 'Platinum';

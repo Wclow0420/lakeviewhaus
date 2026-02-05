@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -25,12 +26,33 @@ export default function LoginScreen() {
         try {
             const response = await api.post('/auth/login', { identifier, password });
 
+            // Success haptic feedback
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
             await login(response.access_token, response.refresh_token, response.user);
             // Router redirect handled by AuthContext automatically
 
         } catch (error: any) {
             setLoading(false);
-            Alert.alert('Login Failed', error.error || 'Invalid credentials');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+            if (error.status === 403 && error.phone) {
+                Alert.alert(
+                    'Verification Required',
+                    'Your account is not verified yet.',
+                    [
+                        {
+                            text: 'Verify Now',
+                            onPress: () => router.push({
+                                pathname: '/auth/verify',
+                                params: { phone: error.phone, email: error.email }
+                            })
+                        }
+                    ]
+                );
+            } else {
+                Alert.alert('Login Failed', error.error || 'Invalid credentials');
+            }
         }
     };
 

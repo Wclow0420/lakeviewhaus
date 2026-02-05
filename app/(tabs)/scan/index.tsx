@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 const SCAN_SIZE = width * 0.7;
@@ -83,6 +84,13 @@ export default function ScanScreen() {
     const handleBarCodeScanned = ({ type, data }: { type: string, data: string }) => {
         if (scanned) return;
         setScanned(true);
+
+        // Heavy haptic + Success on QR code detection
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        setTimeout(() => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }, 100);
+
         Alert.alert(
             "Scanned!",
             `Data: ${data}`,
@@ -103,7 +111,12 @@ export default function ScanScreen() {
             <View style={[styles.tabContainer, { backgroundColor: theme.inputBackground }]}>
                 <TouchableOpacity
                     style={[styles.tabButton, mode === 'scan' && { backgroundColor: theme.background }]}
-                    onPress={() => setMode('scan')}
+                    onPress={() => {
+                        if (mode !== 'scan') {
+                            Haptics.selectionAsync();
+                            setMode('scan');
+                        }
+                    }}
                 >
                     <Ionicons name="scan-outline" size={20} color={mode === 'scan' ? theme.primary : theme.icon} />
                     <Text style={[styles.tabText, { color: mode === 'scan' ? theme.primary : theme.icon }]}>Scan QR</Text>
@@ -111,7 +124,12 @@ export default function ScanScreen() {
 
                 <TouchableOpacity
                     style={[styles.tabButton, mode === 'code' && { backgroundColor: theme.background }]}
-                    onPress={() => setMode('code')}
+                    onPress={() => {
+                        if (mode !== 'code') {
+                            Haptics.selectionAsync();
+                            setMode('code');
+                        }
+                    }}
                 >
                     <Ionicons name="qr-code-outline" size={20} color={mode === 'code' ? theme.primary : theme.icon} />
                     <Text style={[styles.tabText, { color: mode === 'code' ? theme.primary : theme.icon }]}>My Code</Text>

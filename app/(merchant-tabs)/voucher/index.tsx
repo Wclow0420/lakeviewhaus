@@ -1,4 +1,5 @@
 import { RewardFormModal } from '@/components/modals/merchant/RewardFormModal';
+import { LuckyDrawManager } from '@/components/modals/merchant/LuckyDrawManager';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -7,6 +8,7 @@ import { API_URL, api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import {
     ActivityIndicator,
     Alert,
@@ -78,6 +80,7 @@ export default function MerchantVoucherScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showFormModal, setShowFormModal] = useState(false);
+    const [showLuckyDrawManager, setShowLuckyDrawManager] = useState(false);
     const [editingReward, setEditingReward] = useState<Reward | undefined>();
 
     // Animation State
@@ -428,22 +431,36 @@ export default function MerchantVoucherScreen() {
                     onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
                 >
                     <View style={styles.headerContent}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <View>
-                                <Text style={[styles.title, { color: theme.text }]}>Rewards</Text>
-                                <Text style={[styles.subtitle, { color: theme.icon }]}>
-                                    Manage loyalty rewards
-                                </Text>
+                        <View style={{ marginBottom: 16 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.title, { color: theme.text }]}>Rewards</Text>
+                                    <Text style={[styles.subtitle, { color: theme.icon }]}>
+                                        Manage loyalty rewards
+                                    </Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 8 }}>
+                                    <TouchableOpacity
+                                        style={[styles.headerIconButton, { backgroundColor: theme.card, borderColor: theme.border }]}
+                                        onPress={() => {
+                                            Haptics.selectionAsync();
+                                            setShowLuckyDrawManager(true);
+                                        }}
+                                    >
+                                        <Ionicons name="gift" size={20} color={theme.primary} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.addButton, { backgroundColor: theme.primary }]}
+                                        onPress={() => {
+                                            Haptics.selectionAsync();
+                                            setEditingReward(undefined);
+                                            setShowFormModal(true);
+                                        }}
+                                    >
+                                        <Ionicons name="add" size={24} color="#000" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                            <TouchableOpacity
-                                style={[styles.addButton, { backgroundColor: theme.primary }]}
-                                onPress={() => {
-                                    setEditingReward(undefined);
-                                    setShowFormModal(true);
-                                }}
-                            >
-                                <Ionicons name="add" size={24} color="#000" />
-                            </TouchableOpacity>
                         </View>
 
                         {/* Search Bar */}
@@ -622,6 +639,12 @@ export default function MerchantVoucherScreen() {
                     onSubmit={editingReward ? handleUpdateReward : handleCreateReward}
                     initialData={editingReward}
                 />
+
+                {/* Lucky Draw Manager Modal */}
+                <LuckyDrawManager
+                    visible={showLuckyDrawManager}
+                    onClose={() => setShowLuckyDrawManager(false)}
+                />
             </View>
         </ScreenWrapper>
     );
@@ -657,6 +680,14 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    headerIconButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
     },
     centerContainer: {
         flex: 1,

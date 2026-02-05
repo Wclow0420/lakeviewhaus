@@ -1,11 +1,12 @@
 from app import db
 from datetime import datetime
+import uuid6
 
 class DailyCheckIn(db.Model):
     __tablename__ = 'daily_check_ins'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     check_in_date = db.Column(db.Date, nullable=False, default=datetime.utcnow().date)
     streak_day_count = db.Column(db.Integer, default=1) # 1 to 7
     points_earned = db.Column(db.Integer, default=0) # Points earned from this check-in

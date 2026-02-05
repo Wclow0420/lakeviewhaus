@@ -13,6 +13,7 @@ import { API_URL, api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 // Interfaces (Matches Backend)
 interface Branch { id: number; name: string; is_main: boolean; }
@@ -223,10 +224,16 @@ export default function MerchantMenuScreen() {
     };
 
     const handleToggleProduct = async (id: number, currentStatus: boolean) => {
+        // Haptic feedback on toggle
+        Haptics.selectionAsync();
+
         setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
         try {
             await api.menu.updateProduct(id, { is_active: !currentStatus });
+            // Light success haptic on successful update
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } catch (error) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert("Error", "Update failed");
             fetchMenuData(selectedBranchId || undefined);
         }

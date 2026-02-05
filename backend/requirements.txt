@@ -9,3 +9,5 @@ flask-jwt-extended
 flask-mail
 requests
 gunicorn
+Flask-Limiter
+uuid6

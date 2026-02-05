@@ -46,3 +46,5 @@ with app.app_context():
         db.session.add(branch)
         db.session.commit()
         print(f"Created Branch: {branch.name} (Username: {branch.username})")
+        print(f"Merchant ID: {merchant.id}")
+        print(f"Branch ID: {branch.id}")

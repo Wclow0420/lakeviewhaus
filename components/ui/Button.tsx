@@ -2,6 +2,7 @@ import { Colors, Layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React from 'react';
 import { ActivityIndicator, Text, TextStyle, TouchableOpacity, TouchableOpacityProps, ViewStyle } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface ButtonProps extends TouchableOpacityProps {
     title: string;
@@ -73,11 +74,23 @@ export const Button: React.FC<ButtonProps> = ({
         fontWeight: '600',
     };
 
+    const handlePressIn = () => {
+        if (!disabled && !loading) {
+            // Different haptic feedback based on button variant
+            if (variant === 'primary' || variant === 'secondary') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            } else {
+                Haptics.selectionAsync();
+            }
+        }
+    };
+
     return (
         <TouchableOpacity
             style={[containerStyle, style]}
             disabled={disabled || loading}
             activeOpacity={0.8}
+            onPressIn={handlePressIn}
             {...props}
         >
             {loading ? (

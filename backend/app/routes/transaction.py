@@ -39,7 +39,7 @@ def validate_qr():
             return jsonify({'error': 'Invalid QR code format'}), 400
 
         # Verify user exists
-        user = User.query.get(int(user_id))
+        user = User.query.get(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -95,10 +95,10 @@ def award_points():
         if not user_id:
             return jsonify({'error': 'Invalid QR code format'}), 400
 
-        user = User.query.get(int(user_id))
+        user = User.query.get(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
-
+            
     except ExpiredSignatureError:
         return jsonify({'error': 'QR code has expired. Please ask customer to refresh their code.'}), 400
     except InvalidTokenError:
@@ -144,7 +144,7 @@ def transaction_history():
     if current_identity.startswith('m_'):
         return jsonify({'error': 'Only members can view transaction history'}), 403
 
-    user_id = int(current_identity)
+    user_id = current_identity
     
     # Check query params for limit/page if needed, but for now just fetching all or limit 50
     transactions = Transaction.query.filter_by(member_id=user_id).order_by(Transaction.timestamp.desc()).limit(50).all()

@@ -1,17 +1,18 @@
 from app import db
 from datetime import datetime
+import uuid6
 
 class Merchant(db.Model):
     __tablename__ = 'merchants'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
     name = db.Column(db.String(100), nullable=False)
     # Auth moved to Branch
     company_reg_no = db.Column(db.String(50))
     
     # Referral Program Config
-    referral_referrer_reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'), nullable=True) # Linked Reward
-    referral_referee_reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'), nullable=True) # Linked Reward
+    referral_referrer_reward_id = db.Column(db.String(36), db.ForeignKey('rewards.id'), nullable=True) # Linked Reward
+    referral_referee_reward_id = db.Column(db.String(36), db.ForeignKey('rewards.id'), nullable=True) # Linked Reward
     referral_referrer_points = db.Column(db.Integer, default=0)
     referral_referee_points = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -25,8 +26,8 @@ class Merchant(db.Model):
 class Branch(db.Model):
     __tablename__ = 'branches'
     
-    id = db.Column(db.Integer, primary_key=True)
-    merchant_id = db.Column(db.Integer, db.ForeignKey('merchants.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    merchant_id = db.Column(db.String(36), db.ForeignKey('merchants.id'), nullable=False)
     
     # Auth & Identity
     username = db.Column(db.String(80), unique=True, nullable=False)

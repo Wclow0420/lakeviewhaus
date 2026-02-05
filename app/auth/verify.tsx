@@ -7,7 +7,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 export default function VerifyScreen() {
     const router = useRouter();
@@ -18,9 +19,22 @@ export default function VerifyScreen() {
 
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
+    const [countdown, setCountdown] = useState(60); // Start with 60s cooldown
+
+    // Countdown Timer
+    React.useEffect(() => {
+        let interval: any;
+        if (countdown > 0) {
+            interval = setInterval(() => {
+                setCountdown((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [countdown]);
 
     const handleVerify = async () => {
         if (!otp || otp.length < 6) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             Alert.alert('Error', 'Please enter a valid 6-digit OTP');
             return;
         }
@@ -31,6 +45,9 @@ export default function VerifyScreen() {
 
             // Auto login on success
             if (response.access_token) {
+                // Success haptic feedback
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
                 // Temporarily manual fetch strictly for this flow because we don't have token in SecureStore yet
                 const meRes = await fetch(`${API_URL}/auth/me`, {
                     headers: { Authorization: `Bearer ${response.access_token}` }
@@ -47,7 +64,38 @@ export default function VerifyScreen() {
 
         } catch (error: any) {
             setLoading(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert('Verification Failed', error.error || 'Invalid OTP');
+        }
+    };
+
+    const handleResend = async () => {
+        if (countdown > 0) return;
+
+        setLoading(true);
+        try {
+            await api.post('/auth/resend-otp', { phone });
+            setCountdown(60);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Alert.alert('Success', 'Verification code resent!');
+        } catch (error: any) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            if (error.status === 429) {
+                if (error.wait_seconds) {
+                    setCountdown(error.wait_seconds);
+                    Alert.alert('Rate Limit', `Please wait ${Math.ceil(error.wait_seconds / 60)} minutes before resending.`);
+                } else if (error.daily_limit) {
+                    setCountdown(0); // No point counting down if daily limit
+                    Alert.alert('Limit Reached', error.error || 'Daily limit reached.');
+                } else {
+                    setCountdown(60); // Fallback
+                    Alert.alert('Rate Limit', error.error || 'Please wait before resending.');
+                }
+            } else {
+                Alert.alert('Error', error.error || 'Could not resend code');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -79,12 +127,19 @@ export default function VerifyScreen() {
                     style={{ marginTop: Layout.spacing.lg }}
                 />
 
-                <Button
-                    title="Resend Code"
-                    variant="ghost"
-                    onPress={() => Alert.alert('TODO', 'Resend logic here')}
-                    style={{ marginTop: Layout.spacing.sm }}
-                />
+                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: Layout.spacing.xl, alignItems: 'center' }}>
+                    <Text style={{ color: theme.icon, fontSize: 14 }}>Didn't receive code? </Text>
+                    <TouchableOpacity onPress={handleResend} disabled={countdown > 0}>
+                        <Text style={{
+                            color: countdown > 0 ? theme.icon : theme.primary,
+                            fontWeight: '600',
+                            fontSize: 14,
+                            textDecorationLine: countdown > 0 ? 'none' : 'underline'
+                        }}>
+                            {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </ScreenWrapper>
     );

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -85,6 +86,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                     });
 
                     if (!isFocused && !event.defaultPrevented) {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         navigation.navigate(route.name);
                     }
                 };

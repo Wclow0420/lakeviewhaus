@@ -102,3 +102,50 @@ export const Fonts = Platform.select({
   android: { sans: 'Roboto', rounded: 'Roboto' },
   default: { sans: 'System', rounded: 'System' },
 });
+
+export const RANKS = {
+  Bronze: {
+    gradient: ['#a55435ff', '#e0a270ff', '#ffc6a0ff', '#e0a270ff', '#a55435ff'], // Solid Light Bronze
+    text: '#000000',
+    label: '#666666',
+    accent: '#A17F5D', // Bronze
+    border: '#D7C0A5', // Distinct Bronze Border
+    badgeBg: '#F5F5F5',
+    badgeText: '#A17F5D',
+    progressTrack: '#EAE0D5',
+    progressFill: '#A17F5D'
+  },
+  Silver: {
+    gradient: ['#ffffffff', '#bbbbbbff', '#f1f1f1ff', '#a3a3a3ff', '#bbbbbbff'], // Solid Silver
+    text: '#080000ff',
+    label: '#666666',
+    accent: '#757575', // Silver
+    border: '#B0B0B0', // Distinct Silver Border
+    badgeBg: '#EEEEEE',
+    badgeText: '#757575',
+    progressTrack: '#4f4f4fff',
+    progressFill: '#f5f5f5ff'
+  },
+  Gold: {
+    gradient: ['#feedd7ff', '#c6a681ff', '#ffce93ff', '#c18a4aff', '#613d13ff'],// Solid Gold
+    text: '#443203ff',
+    label: '#302400ff',
+    accent: '#FCD259', // Brand Yellow
+    border: '#FCD259',
+    badgeBg: '#FFF3CD',
+    badgeText: '#856404',
+    progressTrack: '#483500ff',
+    progressFill: '#ffe69cff'
+  },
+  Platinum: {
+    gradient: ['#6a8eadff', '#98b1c5ff', '#c1d1dcff', '#98b1c5ff', '#6a8eadff'], // Dark Grey to Black Gradient
+    text: '#001828ff',
+    label: '#001828ff',
+    accent: '#FFFFFF',
+    border: '#E5E4E2', // Platinum/Silver Metallic Border
+    badgeBg: '#050000ff',
+    badgeText: '#ffffffff',
+    progressTrack: '#444444',
+    progressFill: '#e2e2e2ff' // Pop of yellow on black
+  }
+};

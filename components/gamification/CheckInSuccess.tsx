@@ -1,18 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
     Easing,
-    SharedValue,
     runOnJS,
     useAnimatedStyle,
     useSharedValue,
     withDelay,
-    withRepeat,
     withSequence,
     withSpring,
     withTiming
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import LottieView from 'lottie-react-native';
 
 interface CheckInSuccessProps {
     visible: boolean;
@@ -24,214 +24,227 @@ interface CheckInSuccessProps {
 }
 
 export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescription, isLuckyDraw, onClose }: CheckInSuccessProps) => {
-    const scale = useSharedValue(0);
-    const opacity = useSharedValue(0);
-    const textTranslateY = useSharedValue(20);
-    const textOpacity = useSharedValue(0);
-    const ring1 = useSharedValue(0);
-    const ring2 = useSharedValue(0);
+    // Flow State: 'box' -> 'prize' -> 'streak'
+    // Normal days start directly at 'streak'
+    const [flowState, setFlowState] = useState<'box' | 'prize' | 'streak'>('box');
+
+    // Shared Animations
+    const backdropOpacity = useSharedValue(0);
+    const contentScale = useSharedValue(0);
+
+    // Box Animations
     const boxShake = useSharedValue(0);
     const boxScale = useSharedValue(0);
-    const [showPrize, setShowPrize] = React.useState(false);
 
-    // Determine Theme based on streak
-    const getTheme = (days: number) => {
-        if (days >= 7) return {
-            color: '#E60000', // Special Red
-            glow: 'rgba(230, 0, 0, 0.4)',
-            icon: 'trophy',
-            title: 'Legendary!'
-        };
-        if (days >= 5) return {
-            color: '#FF0055', // Intense Pink/Red
-            glow: 'rgba(255, 0, 85, 0.4)',
-            icon: 'rocket',
-            title: 'Unstoppable!'
-        };
-        if (days >= 3) return {
-            color: '#FF4500', // OrangeRed
-            glow: 'rgba(255, 69, 0, 0.3)',
-            icon: 'flame',
-            title: 'On Fire!'
-        };
-        return {
-            color: '#FCD259', // Gold
-            glow: 'rgba(255, 215, 0, 0.2)',
-            icon: 'gift',
-            title: 'Checked In!'
-        };
-    };
+    // Streak Animations
+    const fireScale = useSharedValue(0);
+    const fireTranslateY = useSharedValue(0);
+    const textOpacity = useSharedValue(0);
+    const [displayStreak, setDisplayStreak] = useState(streakDays > 1 ? streakDays - 1 : 0);
 
-    const theme = getTheme(streakDays);
+    const hasTriggered = React.useRef(false);
 
+    // --- State Management ---
     const handleClose = useCallback(() => {
-        opacity.value = withTiming(0, { duration: 300 });
-        scale.value = withTiming(0.5, { duration: 300 }, () => {
-            runOnJS(setShowPrize)(false); // Reset internal state
+        backdropOpacity.value = withTiming(0, { duration: 300 });
+        contentScale.value = withTiming(0, { duration: 200 }, () => {
             runOnJS(onClose)();
         });
-    }, [onClose, opacity, scale]);
+    }, [onClose, backdropOpacity, contentScale]);
 
+    const transitionToStreak = useCallback(() => {
+        // Animate Out Prize
+        contentScale.value = withTiming(0, { duration: 150 }, () => {
+            runOnJS(setFlowState)('streak');
+        });
+    }, [contentScale]);
+
+    // Initial Setup Trigger
     useEffect(() => {
         if (visible) {
-            // Reset values
-            scale.value = 0;
-            opacity.value = 0;
-            textTranslateY.value = 20;
+            if (hasTriggered.current) return;
+            hasTriggered.current = true;
+
+            // Reset
+            backdropOpacity.value = 0;
+            contentScale.value = 0;
+
+            // Start Entrance
+            backdropOpacity.value = withTiming(1, { duration: 300 });
+
+            // Set Initial State
+            const initialState = isLuckyDraw ? 'box' : 'streak';
+            setFlowState(initialState);
+        } else {
+            hasTriggered.current = false;
+        }
+    }, [visible, isLuckyDraw]);
+
+    // Flow State Reaction - Triggers Entry Animations
+    useEffect(() => {
+        if (!visible) return;
+
+        // Reset content scale for new entry (except for lucky draw box start which handles itself)
+        // Actually, we can just use contentScale for all "Center Content" entrances.
+
+        if (flowState === 'box') {
+            boxScale.value = 0;
+            boxScale.value = withSpring(1);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        else if (flowState === 'prize') {
+            contentScale.value = 0;
+            contentScale.value = withSpring(1);
+        }
+        else if (flowState === 'streak') {
+            // Reset Streak Values
+            fireScale.value = 0;
+            fireTranslateY.value = 0;
             textOpacity.value = 0;
-            ring1.value = 0;
-            ring2.value = 0;
-            setShowPrize(false);
+            setDisplayStreak(streakDays > 1 ? streakDays - 1 : 0);
 
-            // Animation Logic
-            if (isLuckyDraw) {
-                // LUCKY DRAW SEQUENCE
-                // 1. Show Box (Scale Up)
-                boxScale.value = withSpring(1);
+            // Start Animation
+            contentScale.value = withSpring(1);
+            fireScale.value = withSpring(1, { damping: 12 });
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-                // 2. Shake Box
-                boxShake.value = withDelay(400, withSequence(
-                    withTiming(15, { duration: 100 }),
-                    withTiming(-15, { duration: 100 }),
-                    withTiming(15, { duration: 100 }),
-                    withTiming(-15, { duration: 100 }),
-                    withTiming(0, { duration: 100 })
-                ));
+            fireTranslateY.value = withDelay(1000, withTiming(-50, { duration: 500, easing: Easing.out(Easing.quad) }));
+            textOpacity.value = withDelay(1000, withTiming(1, { duration: 400 }));
 
-                // 3. Reveal Prize (Box fades/scales down, Main Icon pop up)
-                scale.value = 0; // Ensure main icon is hidden initially
-                setTimeout(() => {
-                    runOnJS(setShowPrize)(true);
-                    boxScale.value = withTiming(0, { duration: 200 });
-                    scale.value = withSpring(1, { damping: 12 });
-
-                    // Text and Ripples enter AFTER reveal
-                    textOpacity.value = withDelay(200, withTiming(1));
-                    textTranslateY.value = withDelay(200, withSpring(0));
-
-                    // Ripples
-                    ring1.value = withRepeat(withTiming(1, { duration: 2000 }), -1, false);
-                    ring2.value = withDelay(1000, withRepeat(withTiming(1, { duration: 2000 }), -1, false));
-                }, 1200);
-
-            } else {
-                // NORMAL SEQUENCE
-                boxScale.value = 0;
-                setShowPrize(true); // Show immediately
-                opacity.value = withTiming(1, { duration: 300 });
-                scale.value = withSpring(1, { damping: 12 });
-
-                // Expanding Ripples
-                const duration = 2000;
-                ring1.value = withRepeat(
-                    withTiming(1, { duration, easing: Easing.out(Easing.ease) }),
-                    -1,
-                    false
-                );
-                ring2.value = withDelay(
-                    1000,
-                    withRepeat(
-                        withTiming(1, { duration, easing: Easing.out(Easing.ease) }),
-                        -1,
-                        false
-                    )
-                );
-
-                // Text Staggered Entry
-                textOpacity.value = withDelay(400, withTiming(1, { duration: 500 }));
-                textTranslateY.value = withDelay(400, withSpring(0));
-            }
-
-
-
-            // Auto-close after longer delay for lucky draw
+            // Increment Number
             const timer = setTimeout(() => {
-                handleClose();
-            }, isLuckyDraw ? 4000 : 2000);
+                setDisplayStreak(streakDays);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }, 1500);
 
             return () => clearTimeout(timer);
         }
-    }, [visible, streakDays, handleClose, isLuckyDraw]);
+    }, [flowState, visible, streakDays]);
 
-    const modalContainerStyle = useAnimatedStyle(() => ({
-        opacity: opacity.value,
-    }));
+    // --- Interactions ---
+    const handleBoxPress = () => {
+        if (flowState !== 'box') return;
 
+        boxShake.value = withSequence(
+            withTiming(15, { duration: 100 }), withTiming(-15, { duration: 100 }),
+            withTiming(15, { duration: 100 }), withTiming(-15, { duration: 100 }),
+            withTiming(0, { duration: 100 })
+        );
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+        setTimeout(() => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            // Pivot -> Prize
+            boxScale.value = withTiming(0, { duration: 200 }, () => {
+                runOnJS(setFlowState)('prize');
+            });
+        }, 600);
+    };
 
-    const boxAnimatedStyle = useAnimatedStyle(() => ({
+    const handlePrizeClick = () => {
+        if (flowState !== 'prize') return;
+        transitionToStreak();
+    };
+
+    // --- Styles ---
+    const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+    const boxStyle = useAnimatedStyle(() => ({
         transform: [{ scale: boxScale.value }, { rotate: `${boxShake.value}deg` }],
         opacity: boxScale.value > 0.1 ? 1 : 0
     }));
-
-    const mainIconStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
+    const contentStyle = useAnimatedStyle(() => ({ transform: [{ scale: contentScale.value }] }));
+    const fireStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: fireScale.value }, { translateY: fireTranslateY.value }]
     }));
-
-    const textStyle = useAnimatedStyle(() => ({
-        opacity: textOpacity.value,
-        transform: [{ translateY: textTranslateY.value }]
-    }));
-
-    // Ripple Style Generator
-    const useRippleStyle = (progress: SharedValue<number>) => useAnimatedStyle(() => ({
-        transform: [{ scale: 0.5 + (progress.value * 2.5) }], // Expand from 0.5x to 3x
-        opacity: 0.6 * (1 - progress.value), // Fade out
-    }));
-
-    const ripple1Style = useRippleStyle(ring1);
-    const ripple2Style = useRippleStyle(ring2);
+    const statsStyle = useAnimatedStyle(() => ({ opacity: textOpacity.value }));
 
     if (!visible) return null;
 
     return (
         <Modal transparent visible={visible} animationType="none">
-            <Pressable style={styles.overlay} onPress={handleClose}>
-                <Animated.View style={[styles.backdrop, modalContainerStyle]} />
+            {/* Overlay handles close ONLY if we are at the end ('streak') */}
+            <Pressable style={styles.overlay} onPress={() => {
+                if (flowState === 'streak') handleClose();
+                else if (flowState === 'prize') handlePrizeClick();
+            }}>
+                <Animated.View style={[styles.backdrop, backdropStyle]} />
 
+                <View style={styles.contentContainer}>
 
+                    {/* 1. MYSTERY BOX STATE */}
+                    {flowState === 'box' && (
+                        <Pressable style={styles.containerFill} onPress={handleBoxPress}>
+                            <Animated.View style={[styles.centerContent, boxStyle]}>
+                                <LottieView
+                                    source={require('../../assets/lottie/Gift.lottie')}
+                                    autoPlay loop
+                                    style={{ width: 250, height: 250 }}
+                                />
+                                <Text style={styles.mysteryText}>Tap to Open!</Text>
+                            </Animated.View>
+                        </Pressable>
+                    )}
 
-                <View style={styles.contentContainer} onStartShouldSetResponder={() => true}>
-
-                    {/* MYSTERY BOX (Only for Lucky Draw initial state) */}
-                    <Animated.View style={[styles.mysteryBoxContainer, boxAnimatedStyle]}>
-                        <Ionicons name="gift-outline" size={100} color="#FCD259" />
-                        <Text style={styles.mysteryText}>Opening Mystery Prize...</Text>
-                    </Animated.View>
-
-                    {/* REVEAL CONTENT */}
-                    {showPrize && (
-                        <>
-                            {/* Expanded Ripple Background */}
-                            <View style={styles.glowContainer}>
-                                <Animated.View style={[styles.ripple, { backgroundColor: theme.color }, ripple1Style]} />
-                                <Animated.View style={[styles.ripple, { backgroundColor: theme.color }, ripple2Style]} />
+                    {/* 2. PRIZE REVEAL STATE */}
+                    {flowState === 'prize' && (
+                        <Pressable style={styles.containerFill} onPress={handlePrizeClick}>
+                            {/* Light Burst Background */}
+                            <View style={{ position: 'absolute', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
+                                <LottieView
+                                    source={require('../../assets/lottie/Reward light effect.lottie')}
+                                    autoPlay loop
+                                    style={{ width: '100%', height: '100%', transform: [{ scale: 1.2 }] }}
+                                    resizeMode="contain"
+                                />
                             </View>
 
-                            {/* Main Success Icon */}
-                            <Animated.View style={[styles.iconContainer, mainIconStyle, { shadowColor: theme.color }]}>
-                                <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color }]} />
-                                <Ionicons name={theme.icon as any} size={60} color="#FFF" />
+                            <Animated.View style={[styles.centerContent, contentStyle]}>
+                                {/* Gift Icon Animation */}
+                                <LottieView
+                                    source={require('../../assets/lottie/Gifts and rewards.lottie')}
+                                    autoPlay loop
+                                    style={{ width: 350, height: 350, marginBottom: -20 }}
+                                />
+
+                                <Text style={styles.title}>You Won!</Text>
+                                <Text style={[styles.points, { fontSize: 32, marginBottom: 20 }]}>{prizeDescription || `+${pointsEarned} Points`}</Text>
+                                <Text style={styles.closeHint}>Tap anywhere to see streak</Text>
                             </Animated.View>
-
-                            {/* Text Content */}
-                            <Animated.View style={[styles.textWrapper, textStyle]}>
-                                <Text style={styles.title}>{theme.title}</Text>
-
-                                {/* Points or Prize Description */}
-                                {prizeDescription ? (
-                                    <Text style={[styles.points, { color: theme.color, textAlign: 'center' }]}>{prizeDescription}</Text>
-                                ) : (
-                                    <Text style={[styles.points, { color: theme.color }]}>+{pointsEarned} Points</Text>
-                                )}
-
-                                <View style={[styles.streakContainer, styles.highStreakContainer, { backgroundColor: theme.color, shadowColor: theme.color }]}>
-                                    <Ionicons name="flame" size={20} color="#FFF" />
-                                    <Text style={styles.streakText}>{streakDays} Day Streak</Text>
-                                </View>
-                            </Animated.View>
-                        </>
+                        </Pressable>
                     )}
+
+                    {/* 3. STREAK CELEBRATION STATE (Shared with Normal Day) */}
+                    {flowState === 'streak' && (
+                        <Pressable style={styles.containerFill} onPress={handleClose}>
+                            <View style={styles.centerContent}>
+                                {/* Confetti Background */}
+                                <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]} pointerEvents="none">
+                                    <LottieView
+                                        source={require('../../assets/lottie/Confetti.lottie')}
+                                        autoPlay loop={false}
+                                        resizeMode="cover"
+                                        style={{ width: '100%', height: '100%' }}
+                                    />
+                                </View>
+
+                                <Animated.View style={fireStyle}>
+                                    <LottieView
+                                        source={require('../../assets/lottie/Fire.lottie')}
+                                        autoPlay loop
+                                        style={{ width: 200, height: 200 }}
+                                    />
+                                </Animated.View>
+
+                                <Animated.View style={[styles.normalContent, statsStyle]}>
+                                    <Text style={styles.bigStreakNumber}>{displayStreak}</Text>
+                                    <Text style={styles.streakLabel}>Day Streak</Text>
+                                    <Text style={styles.pointsLabel}>+{pointsEarned} Points</Text>
+                                    <Text style={[styles.closeHint, { marginTop: 40 }]}>Tap anywhere to continue</Text>
+                                </Animated.View>
+                            </View>
+                        </Pressable>
+                    )}
+
                 </View>
             </Pressable>
         </Modal>
@@ -239,108 +252,20 @@ export const CheckInSuccess = ({ visible, streakDays, pointsEarned, prizeDescrip
 };
 
 const styles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-    },
-    contentContainer: {
-        width: 300,
-        height: 400,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    glowContainer: {
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    ripple: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-    },
-    iconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-        overflow: 'hidden',
-        borderWidth: 4,
-        borderColor: '#FFF',
-        shadowColor: "#FCD259",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 20,
-        elevation: 10,
-    },
-    gradientBg: {
-        backgroundColor: '#FCD259', // Fallback / Base color
-    },
-    textWrapper: {
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#FFF',
-        marginBottom: 8,
-    },
-    points: {
-        fontSize: 20,
-        fontWeight: '600',
-        color: '#FCD259',
-        marginBottom: 16,
-    },
-    streakContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        gap: 6,
-    },
-    highStreakContainer: {
-        backgroundColor: '#FF4500', // Solid OrangeRed pill for emphasis
-        shadowColor: "#FF4500",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-    },
-    streakText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
+    overlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' },
+    contentContainer: { width: '100%', height: '100%' },
+    containerFill: { flex: 1, width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+    centerContent: { justifyContent: 'center', alignItems: 'center' },
 
-    closeArea: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: -1,
-    },
-    mysteryBoxContainer: {
-        position: 'absolute',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 20,
-    },
-    mysteryText: {
-        color: '#FCD259',
-        fontSize: 18,
-        fontWeight: '700',
-        marginTop: 16,
-    }
+    mysteryText: { color: '#FCD259', fontSize: 18, fontWeight: '700', marginTop: 16 },
+
+    title: { fontSize: 32, fontWeight: '800', color: '#FFF', marginBottom: 8, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 10 },
+    points: { fontSize: 24, fontWeight: '600', color: '#FCD259', marginBottom: 16 },
+
+    normalContent: { alignItems: 'center' },
+    bigStreakNumber: { fontSize: 80, fontWeight: '900', color: '#FFF', includeFontPadding: false, lineHeight: 90 },
+    streakLabel: { fontSize: 24, fontWeight: '600', color: '#FF4500', marginTop: -10 },
+    pointsLabel: { fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginTop: 12 },
+    closeHint: { color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 20 },
 });

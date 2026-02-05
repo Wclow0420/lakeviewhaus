@@ -2,13 +2,14 @@ from app import db
 from datetime import datetime, timedelta
 import secrets
 import string
+import uuid6
 
 class Reward(db.Model):
     __tablename__ = 'rewards'
 
-    id = db.Column(db.Integer, primary_key=True)
-    merchant_id = db.Column(db.Integer, db.ForeignKey('merchants.id'), nullable=False)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)  # null = all branches
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    merchant_id = db.Column(db.String(36), db.ForeignKey('merchants.id'), nullable=False)
+    branch_id = db.Column(db.String(36), db.ForeignKey('branches.id'), nullable=True)  # null = all branches
 
     # Content
     title = db.Column(db.String(200), nullable=False)
@@ -20,7 +21,7 @@ class Reward(db.Model):
     is_custom = db.Column(db.Boolean, default=True) # True = Manual Title/Desc, False = Linked to system item
     reward_type = db.Column(db.String(50), default='free_item') # 'free_item', 'discount_percentage', 'discount_fixed'
     target_scope = db.Column(db.String(50), default='custom') # 'order', 'product', 'category', 'custom'
-    target_id = db.Column(db.Integer, nullable=True) # Linked Product ID or Category ID
+    target_id = db.Column(db.String(36), nullable=True) # Linked Product ID or Category ID
     discount_value = db.Column(db.Float, nullable=True) # Amount or Percentage
 
     # Pricing & Access
@@ -109,23 +110,31 @@ class Reward(db.Model):
 class UserReward(db.Model):
     __tablename__ = 'user_rewards'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'), nullable=False)
-    merchant_id = db.Column(db.Integer, db.ForeignKey('merchants.id'))
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    reward_id = db.Column(db.String(36), db.ForeignKey('rewards.id'), nullable=False)
+    merchant_id = db.Column(db.String(36), db.ForeignKey('merchants.id'))
 
     # Redemption Details
-    points_spent = db.Column(db.Integer, nullable=False)
+    points_spent = db.Column(db.Integer, nullable=False, default=0)
     redemption_code = db.Column(db.String(20), unique=True, nullable=False)  # QR code value
 
     # Status & Timing
-    status = db.Column(db.String(20), default='active')  # active/used/expired/cancelled
+    status = db.Column(db.String(20), default='active')  # active/used/expired/cancelled or 'available' for lucky draw rewards
     redeemed_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime)
 
     # Usage Tracking
     used_at = db.Column(db.DateTime, nullable=True)
-    used_by_branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    used_by_branch_id = db.Column(db.String(36), db.ForeignKey('branches.id'), nullable=True)
+
+    # Lucky Draw Integration (NEW)
+    source_type = db.Column(
+        db.Enum('direct_redeem', 'lucky_draw', 'promotion', name='reward_source_enum'),
+        default='direct_redeem',
+        nullable=False
+    )
+    lucky_draw_history_id = db.Column(db.String(36), db.ForeignKey('lucky_draw_history.id'), nullable=True)
 
     # Relationships
     user = db.relationship('User', backref='redeemed_rewards')
@@ -164,6 +173,8 @@ class UserReward(db.Model):
             'used_by_branch_id': self.used_by_branch_id,
             'used_at_branch_name': used_at_branch_name,  # New
             'valid_at_branch_name': valid_at_branch_name, # New
+            'source_type': self.source_type,  # Lucky Draw Integration
+            'lucky_draw_history_id': self.lucky_draw_history_id,  # Lucky Draw Integration
             'reward': self.reward.to_dict() if self.reward else None
         }
 
@@ -186,9 +197,9 @@ class UserReward(db.Model):
 class UserVoucher(db.Model):
     __tablename__ = 'user_vouchers'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    reward_id = db.Column(db.Integer, db.ForeignKey('rewards.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    reward_id = db.Column(db.String(36), db.ForeignKey('rewards.id'), nullable=False)
     unique_code = db.Column(db.String(50), unique=True, nullable=False)
     is_used = db.Column(db.Boolean, default=False)
     used_at = db.Column(db.DateTime, nullable=True)

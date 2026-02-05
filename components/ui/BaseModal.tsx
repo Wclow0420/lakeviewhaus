@@ -2,6 +2,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface BaseModalProps {
     visible: boolean;
@@ -30,6 +31,11 @@ export const BaseModal: React.FC<BaseModalProps> = ({
     const isAndroid = Platform.OS === 'android';
     const effectivePresentationStyle = presentationStyle ?? (isAndroid ? undefined : "pageSheet");
 
+    const handleClose = () => {
+        Haptics.selectionAsync();
+        onClose();
+    };
+
     return (
         <Modal
             visible={visible}
@@ -56,7 +62,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
                     {/* Header */}
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-                        <TouchableOpacity onPress={onClose}>
+                        <TouchableOpacity onPress={handleClose}>
                             <Text style={{ color: theme.primary, fontSize: 16 }}>Close</Text>
                         </TouchableOpacity>
                     </View>

@@ -2,6 +2,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface PillProps {
     label: string;
@@ -29,10 +30,22 @@ export const Pill: React.FC<PillProps> = ({
     const text = selected ? theme.background : theme.text;
     const border = selected ? (activeColor || theme.text) : theme.border;
 
+    const handlePress = () => {
+        Haptics.selectionAsync();
+        onPress();
+    };
+
+    const handleLongPress = () => {
+        if (onLongPress) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onLongPress();
+        }
+    };
+
     return (
         <TouchableOpacity
-            onPress={onPress}
-            onLongPress={onLongPress}
+            onPress={handlePress}
+            onLongPress={onLongPress ? handleLongPress : undefined}
             style={[
                 styles.pill,
                 {

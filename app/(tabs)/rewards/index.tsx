@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
+import LottieView from 'lottie-react-native';
 import {
     ActivityIndicator,
     Alert,
@@ -41,6 +42,20 @@ interface Reward {
     target_name?: string;
 }
 
+interface LuckyDraw {
+    id: string; // Updated to match UUID
+    name: string;
+    description?: string;
+    image_url?: string;
+    points_cost: number;
+    total_available_spins?: number;
+    remaining_spins?: number;
+    is_day7_draw: boolean;
+    user_can_spin: boolean;
+    user_spins_today: number;
+    user_has_enough_points: boolean;
+}
+
 const RANK_HIERARCHY: Record<string, number> = {
     'bronze': 0,
     'silver': 1,
@@ -54,32 +69,37 @@ export default function RewardsScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
 
-    // ... (rest of state items are fine, not modifying them here)
+    // Gamification State
     const [streak, setStreak] = useState(0);
     const [canCheckIn, setCanCheckIn] = useState(false);
     const [currentDay, setCurrentDay] = useState(1);
     const [checkedDays, setCheckedDays] = useState<number[]>([]);
 
+    // Content State
     const [rewards, setRewards] = useState<{ title: string; data: Reward[] }[]>([]);
+    const [luckyDraws, setLuckyDraws] = useState<LuckyDraw[]>([]);
+
+    // UI State
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
+    // Check-In Animation State
     const [showCheckIn, setShowCheckIn] = useState(false);
     const [pointsEarned, setPointsEarned] = useState(0);
     const [prizeDesc, setPrizeDesc] = useState<string | undefined>(undefined);
     const [isLuckyDraw, setIsLuckyDraw] = useState(false);
 
-    // ... fetchData logic ...
-
     // Fetch data
     const fetchData = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const [status, rewardsData] = await Promise.all([
+            const [status, rewardsData, drawsData] = await Promise.all([
                 api.getCheckInStatus(),
-                api.rewards.getAvailableRewards()
+                api.rewards.getAvailableRewards(),
+                api.userLuckyDraw.getAvailableDraws()
             ]);
 
+            // 1. Check-In Status
             setStreak(status.total_streak);
             setCanCheckIn(status.can_check_in);
             setCurrentDay(status.cycle_day || 1);
@@ -93,11 +113,12 @@ export default function RewardsScreen() {
             }
             setCheckedDays(checked);
 
-            if (status.points !== undefined) {
-                // refreshProfile(); 
-            }
+            // 2. Lucky Draws - Filter out Day 7 (if needed, but usually keep manual draws)
+            setLuckyDraws(drawsData.lucky_draws || []);
 
-            const grouped = rewardsData.reduce((acc: any, reward: Reward) => {
+            // 3. Rewards - Handle both array (no pagination) and object (with pagination) responses
+            const rewardsList = Array.isArray(rewardsData) ? rewardsData : (rewardsData.rewards || []);
+            const grouped = rewardsList.reduce((acc: any, reward: Reward) => {
                 const category = reward.category || 'Other';
                 if (!acc[category]) {
                     acc[category] = [];
@@ -149,8 +170,6 @@ export default function RewardsScreen() {
             setCanCheckIn(false);
             setCheckedDays([...checkedDays, currentDay]);
             setShowCheckIn(true);
-
-            refreshProfile();
             api.getCheckInStatus();
         } catch (e: any) {
             Alert.alert("Check In Failed", e.error || "Something went wrong.");
@@ -158,7 +177,6 @@ export default function RewardsScreen() {
     };
 
     const renderDay = (dayNumber: number) => {
-        // ... unchanged ...
         const isChecked = checkedDays.includes(dayNumber);
         const isCurrent = dayNumber === currentDay;
 
@@ -189,6 +207,49 @@ export default function RewardsScreen() {
                     </View>
                 )}
             </View>
+        );
+    };
+
+    const renderLuckyDrawItem = (item: LuckyDraw) => {
+        return (
+            <TouchableOpacity
+                key={item.id}
+                style={[styles.luckyDrawCard]}
+                onPress={() => router.push(`/rewards/lucky-draw/${item.id}`)}
+                activeOpacity={0.9}
+            >
+                <LinearGradient
+                    colors={['#4c669f', '#3b5998', '#192f6a']}
+                    style={styles.luckyDrawGradient}
+                >
+                    <View style={styles.luckyDrawContent}>
+                        <View style={styles.luckyDrawIcon}>
+                            <LottieView
+                                source={require('@/assets/lottie/Gift.lottie')}
+                                autoPlay loop
+                                style={{ width: 80, height: 80 }}
+                            />
+                        </View>
+                        <View style={{ flex: 1, paddingLeft: 12 }}>
+                            <Text style={styles.luckyDrawTitle}>{item.name}</Text>
+                            <View style={styles.luckyDrawMeta}>
+                                <View style={styles.costTag}>
+                                    <Ionicons name="star" size={12} color="#FFD700" />
+                                    <Text style={styles.costTagText}>
+                                        {item.points_cost === 0 ? "FREE" : `${item.points_cost} pts`}
+                                    </Text>
+                                </View>
+                                {item.remaining_spins !== undefined && (
+                                    <Text style={styles.spinsText}>{item.remaining_spins} left</Text>
+                                )}
+                            </View>
+                        </View>
+                        <View style={styles.playButton}>
+                            <Ionicons name="arrow-forward" size={20} color="#4c669f" />
+                        </View>
+                    </View>
+                </LinearGradient>
+            </TouchableOpacity>
         );
     };
 
@@ -310,14 +371,12 @@ export default function RewardsScreen() {
                         </Text>
                     </View>
                     <View style={styles.pointsStack}>
-                        {/* Lifetime Points */}
                         <View style={styles.pointsRow}>
                             <Text style={[styles.pointsLabel, { color: theme.icon }]}>Total:</Text>
                             <Text style={[styles.pointsValue, { color: theme.text }]}>
                                 {user?.points_lifetime || user?.points || 0} pts
                             </Text>
                         </View>
-                        {/* Usable Points */}
                         <View style={styles.pointsRow}>
                             <Text style={[styles.pointsLabel, { color: theme.icon }]}>Usable:</Text>
                             <Text style={[styles.pointsValue, { color: theme.text }]}>
@@ -347,12 +406,10 @@ export default function RewardsScreen() {
                         </View>
                     </View>
 
-                    {/* 7-Day Calendar */}
                     <View style={styles.calendarContainer}>
                         {[1, 2, 3, 4, 5, 6, 7].map(renderDay)}
                     </View>
 
-                    {/* Check-In Button */}
                     <TouchableOpacity
                         style={[
                             styles.checkInButton,
@@ -371,17 +428,32 @@ export default function RewardsScreen() {
                     </TouchableOpacity>
                 </LinearGradient>
 
+                {/* Lucky Draws Section */}
+                {luckyDraws.length > 0 && (
+                    <View style={{ marginBottom: 24 }}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Lucky Draws</Text>
+                        </View>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.horizontalList}
+                        >
+                            {luckyDraws.map(renderLuckyDrawItem)}
+                        </ScrollView>
+                    </View>
+                )}
+
                 {/* Rewards Sections */}
                 {loading ? (
                     <ActivityIndicator size="small" color={theme.primary} style={{ marginTop: 20 }} />
-                ) : rewards.length === 0 ? (
+                ) : rewards.length === 0 && luckyDraws.length === 0 ? (
                     <Text style={[styles.emptyText, { color: theme.icon }]}>No rewards available yet.</Text>
                 ) : (
                     rewards.map((section, sectionIndex) => (
                         <View key={section.title} style={{ marginBottom: 24 }}>
                             <View style={styles.sectionHeader}>
                                 <Text style={[styles.sectionTitle, { color: theme.text }]}>{section.title}</Text>
-                                {/* Only show View More on first section or manage per section if needed */}
                                 {sectionIndex === 0 && (
                                     <TouchableOpacity onPress={() => router.push('/rewards/catalog')}>
                                         <Text style={[styles.seeAll, { color: theme.primary }]}>View All</Text>
@@ -396,7 +468,6 @@ export default function RewardsScreen() {
                             >
                                 {section.data.slice(0, 5).map((item, index) => renderRewardItem(item, index))}
 
-                                {/* View More Card at end of each section */}
                                 <TouchableOpacity
                                     style={[styles.viewMoreCard, { backgroundColor: theme.card, borderColor: theme.border }]}
                                     onPress={() => router.push('/rewards/catalog')}
@@ -419,7 +490,10 @@ export default function RewardsScreen() {
                 pointsEarned={pointsEarned}
                 prizeDescription={prizeDesc}
                 isLuckyDraw={isLuckyDraw}
-                onClose={() => setShowCheckIn(false)}
+                onClose={() => {
+                    setShowCheckIn(false);
+                    setTimeout(() => refreshProfile(), 300);
+                }}
             />
         </View>
     );
@@ -582,6 +656,73 @@ const styles = StyleSheet.create({
         gap: 16,
         paddingBottom: 20,
     },
+
+    // Lucky Draw Styles
+    luckyDrawCard: {
+        width: 280,
+        height: 100,
+        borderRadius: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
+        overflow: 'hidden',
+    },
+    luckyDrawGradient: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'center',
+    },
+    luckyDrawContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    luckyDrawIcon: {
+        marginRight: 4,
+    },
+    luckyDrawTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#FFF',
+        marginBottom: 6,
+    },
+    luckyDrawMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    costTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 4,
+    },
+    costTagText: {
+        color: '#FFF',
+        fontWeight: '700',
+        fontSize: 12,
+    },
+    spinsText: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 12,
+    },
+    playButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+
     rewardCard: {
         width: 160,
         borderRadius: 16,

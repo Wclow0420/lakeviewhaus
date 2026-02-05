@@ -6,6 +6,7 @@ import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface AwardPointsModalProps {
     visible: boolean;
@@ -31,20 +32,32 @@ export const AwardPointsModal: React.FC<AwardPointsModalProps> = ({
     const [loading, setLoading] = useState(false);
 
     const handleKeyPress = (key: string) => {
+        // Light haptic feedback for each key press
         if (key === 'DEL') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setAmount(prev => prev.slice(0, -1));
         } else if (key === '.') {
-            if (!amount.includes('.')) setAmount(prev => prev + '.');
+            if (!amount.includes('.')) {
+                Haptics.selectionAsync();
+                setAmount(prev => prev + '.');
+            }
         } else {
             // Prevent leading zeros unless 0.
-            if (amount === '0' && key !== '.') setAmount(key);
-            else if (amount.includes('.') && amount.split('.')[1].length >= 2) return; // Limit 2 decimal
-            else setAmount(prev => prev + key);
+            if (amount === '0' && key !== '.') {
+                Haptics.selectionAsync();
+                setAmount(key);
+            } else if (amount.includes('.') && amount.split('.')[1].length >= 2) {
+                return; // Limit 2 decimal
+            } else {
+                Haptics.selectionAsync();
+                setAmount(prev => prev + key);
+            }
         }
     };
 
     const handleAward = async () => {
         if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             Alert.alert('Invalid Amount', 'Please enter a valid positive amount.');
             return;
         }
@@ -52,6 +65,10 @@ export const AwardPointsModal: React.FC<AwardPointsModalProps> = ({
         setLoading(true);
         try {
             const res = await api.merchant.awardPoints(qrToken, parseFloat(amount));
+
+            // Success haptic feedback
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
             Alert.alert('Success', `Awarded ${parseFloat(res.points_earned).toFixed(2)} points to ${res.user_name}`, [
                 {
                     text: 'OK', onPress: () => {
@@ -61,6 +78,7 @@ export const AwardPointsModal: React.FC<AwardPointsModalProps> = ({
                 }
             ]);
         } catch (error: any) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert('Error', error.error || 'Failed to award points');
         } finally {
             setLoading(false);

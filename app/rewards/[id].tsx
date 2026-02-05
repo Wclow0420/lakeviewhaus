@@ -12,6 +12,7 @@ import {
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RedemptionSuccess } from '../../components/gamification/RedemptionSuccess';
 import { Button } from '../../components/ui/Button';
 import { RewardBadge } from '../../components/ui/RewardBadge';
 import { Colors } from '../../constants/theme';
@@ -20,7 +21,7 @@ import { useColorScheme } from '../../hooks/use-color-scheme';
 import { API_URL, api } from '../../services/api';
 
 interface Reward {
-    id: number;
+    id: string; // Updated to string (UUID)
     title: string;
     description?: string;
     image_url?: string;
@@ -59,6 +60,7 @@ export default function RewardDetailScreen() {
     const [reward, setReward] = useState<Reward | null>(null);
     const [loading, setLoading] = useState(true);
     const [redeeming, setRedeeming] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     useEffect(() => {
         loadReward();
@@ -67,7 +69,8 @@ export default function RewardDetailScreen() {
     const loadReward = async () => {
         try {
             setLoading(true);
-            const data = await api.rewards.getReward(Number(id));
+            // Ensure id is treated as string and not cast to Number which causes NaN for UUIDs
+            const data = await api.rewards.getReward(String(id));
             setReward(data);
         } catch (error) {
             console.error('Failed to load reward', error);
@@ -106,12 +109,9 @@ export default function RewardDetailScreen() {
                     onPress: async () => {
                         try {
                             setRedeeming(true);
-                            await api.rewards.redeemReward(reward.id);
+                            await api.rewards.redeemReward(reward.id); // Passing ID as is (string)
                             await refreshProfile(); // Refresh points balance
-
-                            Alert.alert("Success", "Reward redeemed! Check 'My Vouchers' to use it.", [
-                                { text: "OK", onPress: () => router.back() }
-                            ]);
+                            setShowSuccess(true);
                         } catch (error: any) {
                             Alert.alert("Redemption Failed", error.error || "Unable to redeem reward.");
                         } finally {
@@ -270,6 +270,16 @@ export default function RewardDetailScreen() {
                     }}
                 />
             </View>
+
+            {/* Success Animation Modal */}
+            <RedemptionSuccess
+                visible={showSuccess}
+                rewardName={reward.title}
+                onClose={() => {
+                    setShowSuccess(false);
+                    router.back();
+                }}
+            />
         </View>
     );
 }

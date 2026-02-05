@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app import db, mail
+from app import db, mail, limiter
 from app.utils.sms import send_sms
 from app.models.user import User
 from app.models.merchant import Merchant, Branch
@@ -114,7 +114,10 @@ def ensure_referral_code(user):
 
 # --- MEMBER AUTH ---
 @bp.route('/register', methods=['POST'])
+@limiter.limit("5 per minute")
 def register():
+    # ... existing code ...
+    # but I need to replace the whole User creation block to add otp_last_sent_at
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
@@ -143,9 +146,6 @@ def register():
         referrer = User.query.filter_by(referral_code=referral_code.upper()).first()
         if referrer:
             referrer_id = referrer.id
-        # Note: We silently ignore invalid codes to prevent registration blocking, 
-        # or we could return error. User pref choice. I'll silently ignore for smoother UX 
-        # or maybe return warning. But usually better to let them register.
 
     # Create unverified user
     user = User(
@@ -156,15 +156,13 @@ def register():
         is_verified=False,
         otp_code=otp,
         otp_expires_at=otp_expiry,
+        otp_last_sent_at=datetime.datetime.utcnow(),
         referral_code=new_ref_code,
         referred_by_id=referrer_id
     )
     
     db.session.add(user)
     db.session.commit()
-
-    # Send OTP SMS
-    send_sms(phone, f"Lakeview Haus Verification Code: {otp}")
 
     # Send OTP SMS
     send_sms(phone, f"Lakeview Haus Verification Code: {otp}")
@@ -220,6 +218,76 @@ def verify_otp():
         'refresh_token': refresh_token
     }), 200
 
+@bp.route('/resend-otp', methods=['POST'])
+@limiter.limit("5 per minute")
+def resend_otp():
+    data = request.get_json()
+    phone = data.get('phone')
+
+    if not phone:
+        return jsonify({'error': 'Phone required'}), 400
+
+    user = User.query.filter_by(phone=phone).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    if user.is_verified:
+        return jsonify({'message': 'User already verified'}), 200
+
+    # 1. Check for Daily Reset
+    now = datetime.datetime.utcnow()
+    if user.otp_last_sent_at and user.otp_last_sent_at.date() < now.date():
+        user.otp_resend_count = 0
+    
+    # 2. Determine Wait Time based on Count
+    # Tier 1: Attempts 1-3 (Count 0-2) -> 1 minute
+    # Tier 2: Attempts 4-6 (Count 3-5) -> 10 minutes
+    # Tier 3: Attempts 7-8 (Count 6-7) -> 30 minutes
+    # Tier 4: Attempt 9+ (Count >= 8) -> Blocked
+    
+    count = user.otp_resend_count or 0
+    
+    if count < 3:
+        required_wait = 60 # 1 minute
+    elif count < 6:
+        required_wait = 600 # 10 minutes
+    elif count < 8:
+        required_wait = 1800 # 30 minutes
+    else:
+        return jsonify({
+            'error': 'Daily SMS limit reached. Please try again tomorrow.',
+             'daily_limit': True
+        }), 429
+        
+    # 3. Check Cooldown
+    if user.otp_last_sent_at:
+        elapsed = (now - user.otp_last_sent_at).total_seconds()
+        if elapsed < required_wait:
+            wait_time = int(required_wait - elapsed)
+            return jsonify({
+                'error': f'Please wait {wait_time} seconds before resending',
+                'wait_seconds': wait_time
+            }), 429
+
+    # 4. Generate and Send
+    otp = generate_otp()
+    user.otp_code = otp
+    user.otp_expires_at = now + datetime.timedelta(minutes=10)
+    user.otp_last_sent_at = now
+    
+    # Increment count ONLY on successful resend intent
+    user.otp_resend_count = count + 1
+    
+    db.session.commit()
+    
+    send_sms(user.phone, f"Lakeview Haus Verification Code: {otp}")
+    
+    return jsonify({
+        'message': 'OTP resent successfully',
+        'new_count': user.otp_resend_count
+    }), 200
+
+
 @bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -240,7 +308,11 @@ def login():
         return jsonify({'error': 'Invalid credentials'}), 401
     
     if not user.is_verified:
-        return jsonify({'error': 'Account not verified. Please verify your phone/email.'}), 403
+        return jsonify({
+            'error': 'Account not verified. Please verify your phone/email.',
+            'phone': user.phone,
+            'email': user.email
+        }), 403
 
     ensure_referral_code(user)
 
@@ -363,7 +435,7 @@ def me():
                 }
             return jsonify(resp)
     else:
-        user = User.query.get(int(current_identity))
+        user = User.query.get(current_identity)
         if user:
             ensure_referral_code(user)
             
@@ -397,7 +469,7 @@ def generate_qr_token():
     if current_identity.startswith('m_'):
         return jsonify({'error': 'Only members can generate QR codes'}), 403
 
-    user = User.query.get(int(current_identity))
+    user = User.query.get(current_identity)
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
@@ -422,7 +494,7 @@ def set_referral():
     if current_identity.startswith('m_'):
         return jsonify({'error': 'Merchants cannot use referral codes'}), 403
         
-    user = User.query.get(int(current_identity))
+    user = User.query.get(current_identity)
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
@@ -464,7 +536,7 @@ def update_profile():
     if current_identity.startswith('m_'):
         return jsonify({'error': 'Merchants cannot use this endpoint'}), 403
         
-    user = User.query.get(int(current_identity))
+    user = User.query.get(current_identity)
     if not user:
         return jsonify({'error': 'User not found'}), 404
 

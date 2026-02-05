@@ -31,9 +31,9 @@ def get_current_user():
     if not identity:
         return None
 
-    # Handle user identity (integer user_id for customers) - JWT returns string
+    # Handle user identity (string user_id for customers)
     try:
-        user_id = int(identity)
+        user_id = identity
         return User.query.get(user_id)
     except (ValueError, TypeError):
         return None
@@ -74,7 +74,7 @@ def get_rewards():
             query = query.filter(Reward.branch_id.is_(None))
         else:
             # Show specific branch rewards
-            query = query.filter_by(branch_id=int(branch_filter))
+            query = query.filter_by(branch_id=branch_filter)
 
     # Filter by active status
     active_only = request.args.get('active_only', 'false').lower() == 'true'
@@ -138,7 +138,7 @@ def create_reward():
     return jsonify(reward.to_dict()), 201
 
 
-@bp.route('/<int:id>', methods=['GET'])
+@bp.route('/<id>', methods=['GET'])
 @jwt_required()
 def get_reward(id):
     """Get a single reward by ID"""
@@ -163,7 +163,7 @@ def get_reward(id):
     return jsonify(reward.to_dict()), 200
 
 
-@bp.route('/<int:id>', methods=['PUT'])
+@bp.route('/<id>', methods=['PUT'])
 @jwt_required()
 def update_reward(id):
     """Update a reward (is_main branch only)"""
@@ -243,7 +243,7 @@ def update_reward(id):
     return jsonify(reward.to_dict()), 200
 
 
-@bp.route('/<int:id>', methods=['DELETE'])
+@bp.route('/<id>', methods=['DELETE'])
 @jwt_required()
 def delete_reward(id):
     """Delete a reward (is_main branch only)"""
@@ -318,14 +318,28 @@ def get_available_rewards():
         query = query.filter_by(category=category)
 
     # Sort by sort_order, then by points_cost (cheapest first)
-    rewards = query.order_by(Reward.sort_order, Reward.points_cost.asc()).all()
+    query = query.order_by(Reward.sort_order, Reward.points_cost.asc())
 
-    return jsonify([r.to_dict() for r in rewards]), 200
+    # Pagination
+    page = request.args.get('page', type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    if page:
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        return jsonify({
+            'rewards': [r.to_dict() for r in pagination.items],
+            'total': pagination.total,
+            'page': page,
+            'pages': pagination.pages
+        }), 200
+    else:
+        rewards = query.all()
+        return jsonify([r.to_dict() for r in rewards]), 200
 
 
 # --- CUSTOMER REDEMPTION ---
 
-@bp.route('/<int:id>/redeem', methods=['POST'])
+@bp.route('/<id>/redeem', methods=['POST'])
 @jwt_required()
 def redeem_reward(id):
     """Customer redeems a reward with their points"""
@@ -594,7 +608,7 @@ def get_redemptions():
     branch_filter = request.args.get('branch_id')
     if branch_filter and current_branch.is_main:
         if branch_filter != 'all':
-            query = query.filter_by(used_by_branch_id=int(branch_filter))
+            query = query.filter_by(used_by_branch_id=branch_filter)
     else:
         # Non-main branches can only see their own redemptions
         if not current_branch.is_main:

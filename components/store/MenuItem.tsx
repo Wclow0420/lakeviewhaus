@@ -5,6 +5,7 @@ import { API_URL } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface Product {
     id: number;
@@ -36,7 +37,14 @@ export const MenuItem = React.memo(({ item, onPress, onAdd, isLast }: MenuItemPr
                 isLast && { borderBottomWidth: 0 },
                 isInactive && { opacity: 0.5 }
             ]}
-            onPress={() => !isInactive && onPress?.(item)}
+            onPress={() => {
+                if (!isInactive) {
+                    Haptics.selectionAsync();
+                    onPress?.(item);
+                } else {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                }
+            }}
             disabled={isInactive}
             activeOpacity={isInactive ? 1 : 0.7}
         >
@@ -87,7 +95,10 @@ export const MenuItem = React.memo(({ item, onPress, onAdd, isLast }: MenuItemPr
                     {!isInactive && (
                         <TouchableOpacity
                             style={[styles.addButton, { backgroundColor: theme.primary }]}
-                            onPress={() => onAdd?.(item)}
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                onAdd?.(item);
+                            }}
                         >
                             <Ionicons name="add" size={20} color="#000" />
                         </TouchableOpacity>

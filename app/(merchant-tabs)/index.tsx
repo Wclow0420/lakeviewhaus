@@ -55,6 +55,12 @@ export default function MerchantDashboard() {
         try {
             setLoading(true);
 
+            // 0. Auth Check
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
             // 1. Fetch Branches (If Main) - Only need to do this once effectively, but ok to refetch
             if (isMain) {
                 const branchData = await api.merchant.getBranches();

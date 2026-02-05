@@ -1,15 +1,27 @@
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// Replace with your machine's IP if running on physical Android device
-// For iOS Simulator or Android Emulator (some), localhost might work or 10.0.2.2
-const DEV_API_URL = Platform.select({
-    ios: 'http://172.20.10.2:5002', // Your LAN IP for physical device
-    android: 'http://172.20.10.2:5002', // Your LAN IP for physical device
+// 1. Get the Environment (passed via app.config.ts -> extra)
+const environment = Constants.expoConfig?.extra?.APP_ENV || 'development';
+
+// 2. Get the API URL from .env (EXPO_PUBLIC_API_URL)
+//    If not set, fallback to production or specific local logic
+const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+// Optional: Keep hardcoded fallbacks just in case .env is missing
+const BACKUP_PROD_URL = 'https://lakeviewhaus.onrender.com';
+const BACKUP_LOCAL_URL = Platform.select({
+    ios: 'http://172.20.10.2:5002',
+    android: 'http://172.20.10.2:5002',
     default: 'http://127.0.0.1:5002',
 });
 
-export const API_URL = DEV_API_URL;
+// Calculate final URL
+export const API_URL = ENV_API_URL || (__DEV__ ? BACKUP_LOCAL_URL : BACKUP_PROD_URL);
+
+console.log(`[API] 🌍 Environment: ${environment}`);
+console.log(`[API] 🔗 Base URL: ${API_URL}`);
 
 const getHeaders = async (tokenOverride?: string) => {
     const token = tokenOverride || await SecureStore.getItemAsync('access_token');
@@ -34,9 +46,16 @@ const refreshAccessToken = async (): Promise<string | null> => {
         });
 
         if (res.ok) {
-            const data = await res.json();
-            await SecureStore.setItemAsync('access_token', data.access_token);
-            return data.access_token;
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await res.json();
+                await SecureStore.setItemAsync('access_token', data.access_token);
+                return data.access_token;
+            } else {
+                const text = await res.text();
+                console.error("Token refresh returned non-JSON response:", text.substring(0, 200));
+                return null;
+            }
         }
         return null;
     } catch (error) {
@@ -82,6 +101,19 @@ const request = async (method: 'GET' | 'POST' | 'PUT' | 'DELETE', endpoint: stri
         }
     }
 
+    // Check if response is JSON before parsing
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error(`[API] Non-JSON response from ${endpoint}:`, text.substring(0, 200));
+        console.error(`[API] Status: ${res.status}, Content-Type: ${contentType}`);
+        throw {
+            status: res.status,
+            error: `Server returned non-JSON response (${res.status})`,
+            details: text.substring(0, 500)
+        };
+    }
+
     const data = await res.json();
     if (!res.ok) {
         throw { status: res.status, ...data };
@@ -90,7 +122,7 @@ const request = async (method: 'GET' | 'POST' | 'PUT' | 'DELETE', endpoint: stri
 };
 
 export const api = {
-    API_URL: DEV_API_URL,
+    API_URL: API_URL,
     get: async (endpoint: string) => {
         return request('GET', endpoint);
     },
@@ -125,6 +157,19 @@ export const api = {
         updatePassword: (data: any) => api.put('/merchant/password', data),
 
         awardPoints: (qrToken: string, amount: number) => api.post('/transaction/award', { qr_token: qrToken, amount }),
+
+        // Lucky Draws (Merchant)
+        luckyDraws: {
+            getAll: () => api.get('/merchant/lucky-draws'),
+            create: (data: any) => api.post('/merchant/lucky-draws', data),
+            get: (id: string | number) => api.get(`/merchant/lucky-draws/${id}`),
+            update: (id: string | number, data: any) => api.put(`/merchant/lucky-draws/${id}`, data),
+            delete: (id: string | number) => api.delete(`/merchant/lucky-draws/${id}`),
+            addPrize: (drawId: string | number, data: any) => api.post(`/merchant/lucky-draws/${drawId}/prizes`, data),
+            updatePrize: (drawId: string | number, prizeId: string | number, data: any) => api.put(`/merchant/lucky-draws/${drawId}/prizes/${prizeId}`, data),
+            deletePrize: (drawId: string | number, prizeId: string | number) => api.delete(`/merchant/lucky-draws/${drawId}/prizes/${prizeId}`),
+            getStats: (id: string | number) => api.get(`/merchant/lucky-draws/${id}/statistics`),
+        }
     },
 
     // Menu Management
@@ -156,16 +201,22 @@ export const api = {
             return api.get(`/rewards${params.toString() ? `?${params.toString()}` : ''}`);
         },
         createReward: (data: any) => api.post('/rewards', data),
-        getReward: (id: number) => api.get(`/rewards/${id}`),
-        updateReward: (id: number, data: any) => api.put(`/rewards/${id}`, data),
-        deleteReward: (id: number) => api.delete(`/rewards/${id}`),
+        getReward: (id: string | number) => api.get(`/rewards/${id}`),
+        updateReward: (id: string | number, data: any) => api.put(`/rewards/${id}`, data),
+        deleteReward: (id: string | number) => api.delete(`/rewards/${id}`),
         getCategories: () => api.get('/rewards/categories'),
 
         // Customer availability
-        getAvailableRewards: (category?: string) => api.get(`/rewards/available${category ? `?category=${category}` : ''}`),
+        getAvailableRewards: (params?: { category?: string; page?: number; per_page?: number }) => {
+            const searchParams = new URLSearchParams();
+            if (params?.category) searchParams.append('category', params.category);
+            if (params?.page) searchParams.append('page', params.page.toString());
+            if (params?.per_page) searchParams.append('per_page', params.per_page.toString());
+            return api.get(`/rewards/available${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+        },
 
         // Customer redemption
-        redeemReward: (id: number) => api.post(`/rewards/${id}/redeem`, {}),
+        redeemReward: (id: string | number) => api.post(`/rewards/${id}/redeem`, {}),
         getMyRewards: (status?: string) => api.get(`/rewards/my-rewards${status ? `?status=${status}` : ''}`),
 
         // Merchant validation
@@ -218,6 +269,16 @@ export const api = {
     // Authenticated User
     user: {
         updateProfile: (data: { username?: string; profile_pic_url?: string }) => api.post('/auth/profile', data),
+    },
+
+    // User Lucky Draw (Customer)
+    userLuckyDraw: {
+        getAvailableDraws: () => api.get('/lucky-draws'),
+        getDrawDetails: (id: string | number) => api.get(`/lucky-draws/${id}`),
+        spin: (id: string | number, spinType: 'points_redemption' | 'day7_checkin' = 'points_redemption') =>
+            api.post(`/lucky-draws/${id}/spin`, { spin_type: spinType }),
+        getHistory: (page = 1, limit = 20) => api.get(`/lucky-draws/history?page=${page}&per_page=${limit}`),
+        getDay7Draw: () => api.get('/lucky-draws/day7-draw'),
     },
 
     // Customer / Public

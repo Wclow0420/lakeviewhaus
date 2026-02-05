@@ -1,11 +1,12 @@
 from app import db
 from datetime import datetime
+import uuid6
 
 class MenuCategory(db.Model):
     __tablename__ = 'menu_categories'
 
-    id = db.Column(db.Integer, primary_key=True)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    branch_id = db.Column(db.String(36), db.ForeignKey('branches.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     sort_order = db.Column(db.Integer, default=0)
     image_url = db.Column(db.String(500), nullable=True)
@@ -26,9 +27,9 @@ class MenuCategory(db.Model):
 class Product(db.Model):
     __tablename__ = 'products'
 
-    id = db.Column(db.Integer, primary_key=True)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('menu_categories.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    branch_id = db.Column(db.String(36), db.ForeignKey('branches.id'), nullable=False)
+    category_id = db.Column(db.String(36), db.ForeignKey('menu_categories.id'), nullable=False)
     
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -62,16 +63,16 @@ class Product(db.Model):
 
 # Association Table for Many-to-Many
 product_options_association = db.Table('product_options_association',
-    db.Column('product_id', db.Integer, db.ForeignKey('products.id'), primary_key=True),
-    db.Column('option_group_id', db.Integer, db.ForeignKey('product_option_groups.id'), primary_key=True)
+    db.Column('product_id', db.String(36), db.ForeignKey('products.id'), primary_key=True),
+    db.Column('option_group_id', db.String(36), db.ForeignKey('product_option_groups.id'), primary_key=True)
 )
 
 class ProductOptionGroup(db.Model):
     __tablename__ = 'product_option_groups'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
     # product_id removed, replaced by association
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False) # Owner of this option group template
+    branch_id = db.Column(db.String(36), db.ForeignKey('branches.id'), nullable=False) # Owner of this option group template
     
     name = db.Column(db.String(100), nullable=False) # e.g. "Ice Level", "Toppings"
     min_selection = db.Column(db.Integer, default=1) # 1 = Mandatory, 0 = Optional
@@ -91,8 +92,8 @@ class ProductOptionGroup(db.Model):
 class ProductOption(db.Model):
     __tablename__ = 'product_options'
 
-    id = db.Column(db.Integer, primary_key=True)
-    group_id = db.Column(db.Integer, db.ForeignKey('product_option_groups.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    group_id = db.Column(db.String(36), db.ForeignKey('product_option_groups.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False) # e.g. "Less Ice", "Extra Shot"
     price_adjustment = db.Column(db.Float, default=0.0) # e.g. +2.00
 
@@ -106,9 +107,9 @@ class ProductOption(db.Model):
 class Collection(db.Model):
     __tablename__ = 'collections'
 
-    id = db.Column(db.Integer, primary_key=True)
-    merchant_id = db.Column(db.Integer, db.ForeignKey('merchants.id'), nullable=False)
-    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True) # Null = Global HQ Collection
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    merchant_id = db.Column(db.String(36), db.ForeignKey('merchants.id'), nullable=False)
+    branch_id = db.Column(db.String(36), db.ForeignKey('branches.id'), nullable=True) # Null = Global HQ Collection
     
     name = db.Column(db.String(200), nullable=False) # e.g. "Hot Deals"
     type = db.Column(db.String(50), default='list') # banner, list, carousel
@@ -132,9 +133,9 @@ class Collection(db.Model):
 class CollectionItem(db.Model):
     __tablename__ = 'collection_items'
     
-    id = db.Column(db.Integer, primary_key=True)
-    collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    collection_id = db.Column(db.String(36), db.ForeignKey('collections.id'), nullable=False)
+    product_id = db.Column(db.String(36), db.ForeignKey('products.id'), nullable=False)
     
     # We might want to sort items in a collection
     sort_order = db.Column(db.Integer, default=0)

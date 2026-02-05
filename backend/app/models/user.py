@@ -1,10 +1,11 @@
 from app import db
 from datetime import datetime
+import uuid6
 
 class User(db.Model):
     __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(20), unique=True, nullable=False) # Added phone
@@ -15,6 +16,8 @@ class User(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     otp_code = db.Column(db.String(6))
     otp_expires_at = db.Column(db.DateTime)
+    otp_last_sent_at = db.Column(db.DateTime) # Rate limiting
+    otp_resend_count = db.Column(db.Integer, default=0) # Daily limit tracking
 
     # Gamification - Dual Points System
     points_balance = db.Column(db.Float, default=0.0)      # Spendable points (for rewards)
@@ -27,7 +30,7 @@ class User(db.Model):
 
     # Referral System
     referral_code = db.Column(db.String(20), unique=True, index=True)
-    referred_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    referred_by_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     
     # Self-referential relationship
     referred_by = db.relationship('User', remote_side=[id], backref='referrals')

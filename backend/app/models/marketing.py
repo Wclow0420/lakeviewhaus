@@ -1,11 +1,12 @@
 from app import db
 from datetime import datetime
+import uuid6
 
 class HomeBanner(db.Model):
     __tablename__ = 'home_banners'
 
-    id = db.Column(db.Integer, primary_key=True)
-    merchant_id = db.Column(db.Integer, db.ForeignKey('merchants.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    merchant_id = db.Column(db.String(36), db.ForeignKey('merchants.id'), nullable=False)
     image_url = db.Column(db.String(500), nullable=False)
     title = db.Column(db.String(100), nullable=True)
     sort_order = db.Column(db.Integer, default=0)
@@ -24,9 +25,9 @@ class HomeBanner(db.Model):
 class HomeTopPick(db.Model):
     __tablename__ = 'home_top_picks'
 
-    id = db.Column(db.Integer, primary_key=True)
-    merchant_id = db.Column(db.Integer, db.ForeignKey('merchants.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid6.uuid7()))
+    merchant_id = db.Column(db.String(36), db.ForeignKey('merchants.id'), nullable=False)
+    product_id = db.Column(db.String(36), db.ForeignKey('products.id'), nullable=False)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

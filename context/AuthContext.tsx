@@ -1,3 +1,4 @@
+import { RankUpSuccess } from '@/components/gamification/RankUpSuccess';
 import { api } from '@/services/api';
 import { useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -23,6 +24,13 @@ const AuthContext = createContext<AuthContextType>({
     refreshProfile: async () => { },
 });
 
+const RANK_HIERARCHY: Record<string, number> = {
+    'bronze': 0,
+    'silver': 1,
+    'gold': 2,
+    'platinum': 3
+};
+
 // Hook to access the context
 export const useAuth = () => useContext(AuthContext);
 
@@ -32,6 +40,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const segments = useSegments();
+
+    // Rank Up State
+    const [showRankUp, setShowRankUp] = useState(false);
+    const [rankUpName, setRankUpName] = useState('');
 
     useEffect(() => {
         // Check for token on mount
@@ -98,6 +110,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const updateUser = async (userData: any) => {
+        // Check for Rank Up
+        if (user && userData && user.rank && userData.rank) {
+            const oldLevel = RANK_HIERARCHY[(user.rank).toLowerCase()] || 0;
+            const newLevel = RANK_HIERARCHY[(userData.rank).toLowerCase()] || 0;
+
+            if (newLevel > oldLevel) {
+                // Trigger Animation
+                setRankUpName(userData.rank);
+                setShowRankUp(true);
+            }
+        }
+
         await SecureStore.setItemAsync('user_data', JSON.stringify(userData));
         setUser(userData);
     };
@@ -116,24 +140,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const inMerchantTabs = segments[0] === '(merchant-tabs)';
     const inMemberTabs = segments[0] === '(tabs)';
 
-    const isAuthorized = !isLoading && (
-        (!user && inAuthGroup) || // Guest in auth
-        (user && user.type === 'branch' && !inMemberTabs && !inAuthGroup) || // Merchant in merchant tabs (or other allowed)
-        (user && user.type !== 'branch' && !inMerchantTabs && !inAuthGroup) // Member in member tabs (or other allowed)
-    );
-
     // If loading, or if we are about to redirect (unauthorized path), don't show children
     const shouldShowContent = !isLoading && (
-        // Allow rendering if we are not authenticated (likely going to login, handled by useEffect)
-        !user ||
-        // Allow if we are authenticated and in the correct place
-        (user.type === 'branch' && !inMemberTabs && !inAuthGroup) ||
-        (user.type !== 'branch' && !inMerchantTabs && !inAuthGroup)
+        // Case 1: Not logged in. Only allow rendering if in 'auth' group (where we are redirected).
+        (!user && inAuthGroup) ||
+        // Case 2: Logged in. Only allow if in correct role-based group.
+        (user && user.type === 'branch' && !inMemberTabs && !inAuthGroup) ||
+        (user && user.type !== 'branch' && !inMerchantTabs && !inAuthGroup)
     );
 
     return (
         <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, refreshProfile }}>
             {shouldShowContent ? children : null}
+
+            <RankUpSuccess
+                visible={showRankUp}
+                newRank={rankUpName}
+                onClose={() => setShowRankUp(false)}
+            />
         </AuthContext.Provider>
     );
 };

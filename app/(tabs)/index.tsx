@@ -1,6 +1,6 @@
 
 import { CheckInSuccess } from '@/components/gamification/CheckInSuccess';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Layout, RANKS } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, API_URL } from '@/services/api';
@@ -46,9 +46,9 @@ const PRODUCTS = [
   { id: 4, name: 'Velvet Mocha', price: '10.00', originalPrice: '18.00', discount: '45% OFF', image: 'https://images.unsplash.com/photo-1570968915860-37d4237d74f3?auto=format&fit=crop&w=400&q=80' },
 ];
 
-const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, currentPoints, onShowQr }: { user: any, theme: any, onCheckIn: () => void, streak: number, canCheckIn: boolean, currentPoints?: number, onShowQr: () => void }) => {
+const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, onShowQr }: { user: any, theme: any, onCheckIn: () => void, streak: number, canCheckIn: boolean, onShowQr: () => void }) => {
   // Use lifetime points for rank calculation (never drops when spending)
-  const points = currentPoints !== undefined ? currentPoints : (user?.points_lifetime || user?.points || 0);
+  const points = user?.points_lifetime || user?.points || 0;
 
   // Animation for Streak Badge
   const badgeScale = useSharedValue(0);
@@ -126,52 +126,7 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, curren
   }
 
   // Rank Styling Definitions
-  const RANKS = {
-    Bronze: {
-      gradient: ['#a55435ff', '#e0a270ff', '#ffc6a0ff', '#e0a270ff', '#a55435ff'], // Solid Light Bronze
-      text: '#000000',
-      label: '#666666',
-      accent: '#A17F5D', // Bronze
-      border: '#D7C0A5', // Distinct Bronze Border
-      badgeBg: '#F5F5F5',
-      badgeText: '#A17F5D',
-      progressTrack: '#EAE0D5',
-      progressFill: '#A17F5D'
-    },
-    Silver: {
-      gradient: ['#ffffffff', '#bbbbbbff', '#f1f1f1ff', '#a3a3a3ff', '#4e4e4eff'], // Solid Silver
-      text: '#080000ff',
-      label: '#666666',
-      accent: '#757575', // Silver
-      border: '#B0B0B0', // Distinct Silver Border
-      badgeBg: '#EEEEEE',
-      badgeText: '#757575',
-      progressTrack: '#4f4f4fff',
-      progressFill: '#f5f5f5ff'
-    },
-    Gold: {
-      gradient: ['#feedd7ff', '#c6a681ff', '#ffce93ff', '#c18a4aff', '#613d13ff'],// Solid Gold
-      text: '#443203ff',
-      label: '#302400ff',
-      accent: '#FCD259', // Brand Yellow
-      border: '#FCD259',
-      badgeBg: '#FFF3CD',
-      badgeText: '#856404',
-      progressTrack: '#483500ff',
-      progressFill: '#ffe69cff'
-    },
-    Platinum: {
-      gradient: ['#6a8eadff', '#98b1c5ff', '#c1d1dcff', '#98b1c5ff', '#6a8eadff'], // Dark Grey to Black Gradient
-      text: '#001828ff',
-      label: '#001828ff',
-      accent: '#FFFFFF',
-      border: '#E5E4E2', // Platinum/Silver Metallic Border
-      badgeBg: '#050000ff',
-      badgeText: '#ffffffff',
-      progressTrack: '#444444',
-      progressFill: '#e2e2e2ff' // Pop of yellow on black
-    }
-  };
+
 
   const currentStyle = RANKS[rank];
   const progress = max === min ? 1 : (points - min) / (max - min);
@@ -264,7 +219,7 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, curren
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme as keyof typeof Colors];
   const insets = useSafeAreaInsets();
@@ -278,7 +233,7 @@ export default function HomeScreen() {
   const [isLuckyDraw, setIsLuckyDraw] = useState(false);
   const [canCheckIn, setCanCheckIn] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentPoints, setCurrentPoints] = useState<number | undefined>(undefined);
+
 
   // Dynamic Data State
   const [banners, setBanners] = useState<any[]>([]);
@@ -289,6 +244,8 @@ export default function HomeScreen() {
   // Fetch Status & Content
   const fetchData = async () => {
     try {
+      if (!user) return; // Prevent fetching if not logged in
+
       // Parallel Fetch
       const [statusRes, bannersRes, topPicksRes, branchesRes] = await Promise.all([
         api.getCheckInStatus().catch(e => ({ can_check_in: false, total_streak: 0 })), // Fail safe
@@ -301,12 +258,7 @@ export default function HomeScreen() {
       if (statusRes) {
         setStreak(statusRes.total_streak || 0);
         setCanCheckIn(statusRes.can_check_in);
-        // Use lifetime points for rank display
-        if (statusRes.points_lifetime !== undefined) {
-          setCurrentPoints(statusRes.points_lifetime);
-        } else if (statusRes.points !== undefined) {
-          setCurrentPoints(statusRes.points);
-        }
+
       }
 
       // Content
@@ -323,12 +275,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchData();
-    // Determine initial points from user object if not yet fetched (use lifetime for rank)
-    if (user?.points_lifetime) {
-      setCurrentPoints(user.points_lifetime);
-    } else if (user?.points) {
-      setCurrentPoints(user.points);
-    }
+
   }, []);
 
   const onRefresh = React.useCallback(async () => {
@@ -351,8 +298,7 @@ export default function HomeScreen() {
       // Update local state based on result
       setStreak(res.streak);
       setPointsEarned(res.points_added);
-      // Update with lifetime points (for rank calculation)
-      setCurrentPoints(res.points_lifetime || res.new_total_points);
+
       setPrizeDesc(res.prize);
       setIsLuckyDraw(res.cycle_day === 7); // OR res.has_voucher
       setCanCheckIn(false);
@@ -460,7 +406,7 @@ export default function HomeScreen() {
             onCheckIn={handleCheckIn}
             streak={streak}
             canCheckIn={canCheckIn}
-            currentPoints={currentPoints}
+
             onShowQr={() => setShowQr(true)}
           />
 
@@ -605,11 +551,20 @@ export default function HomeScreen() {
         pointsEarned={pointsEarned}
         prizeDescription={prizeDesc}
         isLuckyDraw={isLuckyDraw}
-        onClose={() => setShowCheckIn(false)}
+        onClose={() => {
+          setShowCheckIn(false);
+          // Trigger Global Profile Refresh (which checks for Rank Up) only AFTER this modal closes
+          // This prevents animations from clashing
+          setTimeout(() => {
+            fetchData(); // Refresh home data
+            refreshProfile(); // Refresh global user context -> triggers Rank Up
+          }, 300);
+        }}
       />
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

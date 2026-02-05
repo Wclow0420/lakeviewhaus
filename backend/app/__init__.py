@@ -7,11 +7,15 @@ from flask_mail import Mail, Message
 import os
 from dotenv import load_dotenv
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 load_dotenv()
 
 db = SQLAlchemy()
 migrate = Migrate()
 mail = None
+limiter = Limiter(key_func=get_remote_address)
 
 def create_app():
     global mail
@@ -39,6 +43,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
+    limiter.init_app(app)
 
     # Import models explicitly so Alembic sees them and they are registered with SQLAlchemy
     from app.models.user import User
@@ -48,6 +53,9 @@ def create_app():
     from app.models.reward import Reward, UserReward, UserVoucher
     from app.models.menu import MenuCategory, Product, ProductOptionGroup, ProductOption, Collection, CollectionItem
     from app.models.marketing import HomeBanner, HomeTopPick
+    from app.models.lucky_draw import LuckyDraw
+    from app.models.lucky_draw_prize import LuckyDrawPrize
+    from app.models.lucky_draw_history import LuckyDrawHistory
 
     # Register Blueprints
     from app.routes import auth, gamification, merchant, menu, upload, rewards
@@ -66,6 +74,10 @@ def create_app():
 
     from app.routes import marketing
     app.register_blueprint(marketing.bp)
+
+    from app.routes import merchant_lucky_draw, user_lucky_draw
+    app.register_blueprint(merchant_lucky_draw.bp)
+    app.register_blueprint(user_lucky_draw.bp)
 
     @app.route('/')
     def hello():

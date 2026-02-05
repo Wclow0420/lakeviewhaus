@@ -5,6 +5,7 @@ import { API_URL, api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_WIDTH = (width - 72) / 3; // 3 items per row with padding
@@ -70,6 +71,7 @@ export function BranchSelector({ selectedBranchId, onSelectBranch }: BranchSelec
     };
 
     const handleSelect = (branch: Branch) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setSelectedBranch(branch);
         onSelectBranch(branch);
         setModalVisible(false);
@@ -89,7 +91,10 @@ export function BranchSelector({ selectedBranchId, onSelectBranch }: BranchSelec
             {/* Bottom Row: Branch Selector */}
             <TouchableOpacity
                 style={styles.selectorRow}
-                onPress={() => setModalVisible(true)}
+                onPress={() => {
+                    Haptics.selectionAsync();
+                    setModalVisible(true);
+                }}
             >
                 <View>
                     <View style={styles.branchNameRow}>
