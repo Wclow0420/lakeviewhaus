@@ -20,8 +20,8 @@ const ANDROID_ICON = "./assets/images/Android-icon.png";
 
 // 4. Production Values
 const PROD_APP_NAME = "Lakeview Haus";
-const PROD_BUNDLE_IDENTIFIER = "com.lakeviewhaus.app";
-const PROD_PACKAGE_NAME = "com.lakeviewhaus.app";
+const PROD_BUNDLE_IDENTIFIER = "com.lakeviewhaus.biz";
+const PROD_PACKAGE_NAME = "com.lakeviewhaus.biz";
 const PROD_SCHEME = "lakeviewhaus";
 
 // 5. Dynamic Config Generator
@@ -83,11 +83,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
         // === iOS ===
         ios: {
+            appleTeamId: "STUF6G52TN",
             supportsTablet: true,
             bundleIdentifier: bundleIdentifier,
-            buildNumber: appVersion,
+
             icon: IOS_ICON, // ✅ Explicit iOS Icon
             infoPlist: {
+                ITSAppUsesNonExemptEncryption: false,
                 NSFaceIDUsageDescription: "Lakeview Haus uses Face ID to sign you in quickly and securely.",
             },
         },
@@ -161,7 +163,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
 
         // === Owner ===
-        owner: OWNER,
+
 
         // === Updates ===
         updates: {

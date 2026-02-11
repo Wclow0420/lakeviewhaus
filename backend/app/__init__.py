@@ -90,6 +90,10 @@ def create_app():
     from app.routes import notifications
     app.register_blueprint(notifications.bp)
 
+    from app.routes import contact
+    app.register_blueprint(contact.bp)
+
+
     @app.route('/')
     def hello():
         return "Lakeview Haus API is running!"
