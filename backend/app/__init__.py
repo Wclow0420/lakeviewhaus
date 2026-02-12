@@ -15,7 +15,7 @@ load_dotenv()
 db = SQLAlchemy()
 migrate = Migrate()
 mail = None
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
 
 def create_app():
     global mail
