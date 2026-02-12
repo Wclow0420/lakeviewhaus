@@ -588,3 +588,35 @@ def update_profile():
             'profile_pic_url': user.profile_pic_url
         }
     }), 200
+
+@bp.route('/delete-account', methods=['POST'])
+@jwt_required()
+def delete_account():
+    current_identity = get_jwt_identity()
+    if current_identity.startswith('m_'):
+        return jsonify({'error': 'Merchants cannot delete account via this endpoint'}), 403
+    
+    user = User.query.get(current_identity)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    # Anonymize User Data
+    timestamp = int(datetime.datetime.utcnow().timestamp())
+    
+    # Check if already deleted
+    if user.deleted_at:
+        return jsonify({'message': 'Account already deleted'}), 200
+        
+    user.deleted_at = datetime.datetime.utcnow()
+    user.username = f"deleted_{user.id}_{timestamp}"
+    user.email = f"deleted_{user.id}_{timestamp}@lakeview.haus"
+    # Phone is VARCHAR(20), so we need a shorter string.
+    # user.id is 36 chars. Last 8 chars + timestamp (10) + d_ (2) = 20 chars. tightly packed.
+    # Let's use d_{timestamp}_{last 4 of id}. 2+10+1+4 = 17 chars.
+    user.phone = f"d_{timestamp}_{user.id[-4:]}"
+    user.profile_pic_url = None
+    user.is_verified = False
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Account successfully deleted'}), 200

@@ -16,7 +16,7 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
-    const { user, updateUser } = useAuth();
+    const { user, updateUser, logout } = useAuth();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
 
@@ -120,6 +120,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                             loading={loading}
                             style={{ marginTop: 20 }}
                         />
+
+                        <View style={{ marginTop: 20, borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 20 }}>
+                            <Button
+                                title="Delete Account"
+                                onPress={() => {
+                                    Alert.alert(
+                                        "Delete Account",
+                                        "Are you sure you want to delete your account? This action cannot be undone.",
+                                        [
+                                            { text: "Cancel", style: "cancel" },
+                                            {
+                                                text: "Delete",
+                                                style: "destructive",
+                                                onPress: async () => {
+                                                    setLoading(true);
+                                                    try {
+                                                        await api.user.deleteAccount();
+                                                        // Close modal first
+                                                        onClose();
+                                                        // Force logout
+                                                        await logout();
+                                                        Alert.alert("Account Deleted", "Your account has been successfully deleted.");
+                                                    } catch (error: any) {
+                                                        Alert.alert("Error", error.error || "Failed to delete account");
+                                                        setLoading(false);
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }}
+                                loading={loading}
+                                style={{ backgroundColor: '#FFEBEE' }}
+                                textStyle={{ color: '#D32F2F' }}
+                            />
+                        </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

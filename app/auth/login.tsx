@@ -5,14 +5,14 @@ import { Colors, Layout } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image as RNImage, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -135,9 +135,10 @@ export default function LoginScreen() {
 
             <View style={styles.header}>
                 <TouchableWithoutFeedback onPress={() => setSecretTaps(prev => prev + 1)}>
-                    <View style={[styles.iconContainer, { backgroundColor: theme.inputBackground }]}>
-                        <Ionicons name="restaurant" size={40} color={theme.primary} />
-                    </View>
+                    <RNImage
+                        source={require('../../assets/images/logo.png')}
+                        style={{ width: 120, height: 120, borderRadius: 60, resizeMode: 'contain', marginBottom: Layout.spacing.md }}
+                    />
                 </TouchableWithoutFeedback>
                 <Text style={[styles.title, { color: theme.text }]}>Welcome Back!</Text>
                 <Text style={[styles.subtitle, { color: theme.icon }]}>Hungry for points? Sign in to continue.</Text>
@@ -204,14 +205,6 @@ const styles = StyleSheet.create({
     header: {
         alignItems: 'center',
         marginVertical: Layout.spacing.xl * 1.5,
-    },
-    iconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: Layout.spacing.lg,
     },
     title: {
         fontSize: 28,

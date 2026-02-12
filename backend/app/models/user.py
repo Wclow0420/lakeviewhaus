@@ -12,6 +12,9 @@ class User(db.Model):
     profile_pic_url = db.Column(db.String(255)) # Added profile pic
     password_hash = db.Column(db.String(255))
     
+    # Soft Delete
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    
     # Verification
     is_verified = db.Column(db.Boolean, default=False)
     otp_code = db.Column(db.String(6))

@@ -62,7 +62,7 @@ export const PrivacyPolicy: React.FC = () => {
                                 <li>Tap <strong>Delete Account</strong> and confirm your request.</li>
                             </ul>
                             <p style={{ marginTop: '1rem' }}>
-                                Upon deletion, your personal data including your name, email address, points, and transaction history will be permanently removed from our systems within 30 days. This action is irreversible. If you have any issues deleting your account, please contact us at support@lakeviewhaus.com.
+                                Upon deletion, your personal data including your name, email address, points, and transaction history will be permanently removed from our systems within 30 days. This action is irreversible. If you have any issues deleting your account, please contact us at justin.app.dev.1@gmail.com.
                             </p>
                         </section>
                     </FadeIn>
@@ -75,7 +75,7 @@ export const PrivacyPolicy: React.FC = () => {
                             </p>
                             <div style={{ marginTop: '1rem', padding: '1.5rem', backgroundColor: 'var(--color-card-white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>
                                 <p><strong>Lakeview Haus Management</strong></p>
-                                <p>Email: support@lakeviewhaus.com</p>
+                                <p>Email: justin.app.dev.1@gmail.com</p>
                                 <p>Location: Beside Taylor's Lakeside University</p>
                             </div>
                         </section>

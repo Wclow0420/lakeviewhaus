@@ -5,14 +5,16 @@ import { Colors, Layout } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
+import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 
 export default function VerifyScreen() {
     const router = useRouter();
-    const { email, phone } = useLocalSearchParams<{ email: string; phone: string }>();
+    const { email, phone, password } = useLocalSearchParams<{ email: string; phone: string; password?: string }>();
     const { login } = useAuth();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
@@ -56,6 +58,12 @@ export default function VerifyScreen() {
 
                 // response contains { access_token, refresh_token, message }
                 await login(response.access_token, response.refresh_token, userData);
+
+                // Prompt for biometric save if password is available
+                if (password) {
+                    await promptSaveBiometric(phone, password);
+                }
+
                 router.replace('/(tabs)');
             } else {
                 setLoading(false);
@@ -67,6 +75,35 @@ export default function VerifyScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert('Verification Failed', error.error || 'Invalid OTP');
         }
+    };
+
+    const promptSaveBiometric = async (id: string, pw: string) => {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        if (!hasHardware || !isEnrolled) return;
+
+        const saveCreds = () => SecureStore.setItemAsync('biometric_user', JSON.stringify({ identifier: id, password: pw }));
+
+        return new Promise<void>((resolve) => {
+            Alert.alert(
+                'Save Login',
+                'Would you like to use biometrics for faster sign in next time?',
+                [
+                    {
+                        text: 'Not Now',
+                        style: 'cancel',
+                        onPress: () => resolve()
+                    },
+                    {
+                        text: 'Yes',
+                        onPress: async () => {
+                            await saveCreds();
+                            resolve();
+                        }
+                    }
+                ]
+            );
+        });
     };
 
     const handleResend = async () => {

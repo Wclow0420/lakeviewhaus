@@ -5,10 +5,10 @@ import { Colors, Layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -77,7 +77,7 @@ export default function RegisterScreen() {
             setLoading(false);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert('Success', 'Account created! Please verify your phone.', [
-                { text: 'Verify Now', onPress: () => router.push({ pathname: '/auth/verify', params: { phone: finalPhone, email } }) }
+                { text: 'Verify Now', onPress: () => router.push({ pathname: '/auth/verify', params: { phone: finalPhone, email, password } }) }
             ]);
         } catch (error: any) {
             setLoading(false);

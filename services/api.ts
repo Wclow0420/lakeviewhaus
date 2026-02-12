@@ -269,6 +269,7 @@ export const api = {
     // Authenticated User
     user: {
         updateProfile: (data: { username?: string; profile_pic_url?: string }) => api.post('/auth/profile', data),
+        deleteAccount: () => api.post('/auth/delete-account', {}),
     },
 
     // User Lucky Draw (Customer)
