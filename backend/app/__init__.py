@@ -47,7 +47,7 @@ def create_app():
 
     # Initialize SocketIO
     from app.services.socket_service import socketio
-    socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet')
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='gevent')
 
     # Import models explicitly so Alembic sees them and they are registered with SQLAlchemy
     from app.models.user import User
@@ -61,6 +61,7 @@ def create_app():
     from app.models.lucky_draw import LuckyDraw
     from app.models.lucky_draw_prize import LuckyDrawPrize
     from app.models.lucky_draw_history import LuckyDrawHistory
+    from app.models.config import AppConfig
 
     # Register Blueprints
     from app.routes import auth, gamification, merchant, menu, upload, rewards
@@ -92,6 +93,9 @@ def create_app():
 
     from app.routes import contact
     app.register_blueprint(contact.bp)
+
+    from app.routes import config
+    app.register_blueprint(config.config_bp, url_prefix='/config')
 
 
     @app.route('/')

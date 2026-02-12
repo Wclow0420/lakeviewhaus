@@ -12,5 +12,6 @@ gunicorn
 Flask-Limiter
 uuid6
 flask-socketio
-eventlet
+gevent
+gevent-websocket
 resend

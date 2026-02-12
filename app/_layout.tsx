@@ -9,6 +9,7 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+import VersionCheck from '@/components/system/VersionCheck';
 import { AuthProvider } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 
@@ -19,6 +20,7 @@ export default function RootLayout() {
     <AuthProvider>
       <NotificationProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <VersionCheck />
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(merchant-tabs)" options={{ headerShown: false }} />
