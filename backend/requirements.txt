@@ -13,5 +13,4 @@ Flask-Limiter
 uuid6
 flask-socketio
 gevent
-gevent-websocket
 resend
