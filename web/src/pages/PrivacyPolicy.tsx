@@ -52,7 +52,24 @@ export const PrivacyPolicy: React.FC = () => {
 
                     <FadeIn delay={400}>
                         <section style={{ marginBottom: '3rem' }}>
-                            <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-primary-black)' }}>4. Contact Us</h2>
+                            <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-primary-black)' }}>4. Account Deletion</h2>
+                            <p>
+                                You have the right to delete your account and all associated personal data at any time. To delete your account:
+                            </p>
+                            <ul style={{ paddingLeft: '1.5rem', marginTop: '1rem' }}>
+                                <li>Open the Lakeview Haus app.</li>
+                                <li>Go to <strong>Profile</strong> &rarr; <strong>Settings</strong>.</li>
+                                <li>Tap <strong>Delete Account</strong> and confirm your request.</li>
+                            </ul>
+                            <p style={{ marginTop: '1rem' }}>
+                                Upon deletion, your personal data including your name, email address, points, and transaction history will be permanently removed from our systems within 30 days. This action is irreversible. If you have any issues deleting your account, please contact us at support@lakeviewhaus.com.
+                            </p>
+                        </section>
+                    </FadeIn>
+
+                    <FadeIn delay={500}>
+                        <section style={{ marginBottom: '3rem' }}>
+                            <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-primary-black)' }}>5. Contact Us</h2>
                             <p>
                                 If you have questions or comments about this Privacy Policy, please contact us at:
                             </p>

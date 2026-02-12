@@ -30,7 +30,7 @@ def send_contact_email():
         # Send Email
         params = {
             "from": "Lakeview Haus Contact <onboarding@resend.dev>", # Default Resend testing domain
-            "to": ["justinlow97@gmail.com"], # Replace with actual admin email or env var
+            "to": ["justin.app.dev.1@gmail.com"], # Replace with actual admin email or env var
             "subject": f"New Contact Form Submission from {name}",
             "html": f"""
                 <h3>New Message from Lakeview Haus Website</h3>
