@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "build:production": "tsc -b && vite build --mode production",
     "build:development": "tsc -b && vite build --mode development",
+    "serve": "serve -s dist",
     "lint": "eslint .",
     "preview": "vite preview"
   },
