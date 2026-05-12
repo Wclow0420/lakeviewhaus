@@ -5,6 +5,7 @@ import { ScrollToTop } from './components/ui/ScrollToTop';
 import './index.css';
 import { Contact } from './pages/Contact';
 import { Home } from './pages/Home';
+import { PaymentFlow } from './pages/PaymentFlow';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/payment-flow" element={<PaymentFlow />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>

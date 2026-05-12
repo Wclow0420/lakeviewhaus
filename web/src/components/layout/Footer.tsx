@@ -37,7 +37,9 @@ export const Footer: React.FC = () => {
                     <div className="flex flex-col gap-sm">
                         <h4 style={{ fontWeight: 600 }}>Links</h4>
                         <a href="/" style={{ opacity: 0.7 }}>Home</a>
+                        <a href="/payment-flow" style={{ opacity: 0.7 }}>Payment Flow</a>
                         <a href="/privacy-policy" style={{ opacity: 0.7 }}>Privacy Policy</a>
+                        <a href="/contact" style={{ opacity: 0.7 }}>Contact</a>
                         <a href="https://www.instagram.com/lakeview.haus/" target="_blank" rel="noopener noreferrer" style={{ opacity: 0.7 }}>Instagram</a>
                     </div>
 

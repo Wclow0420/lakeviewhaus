@@ -102,6 +102,7 @@ export const Header: React.FC = () => {
           `}</style>
                     <a href="/#about" style={navLinkStyle} className="nav-link">About</a>
                     <a href="/#features" style={navLinkStyle} className="nav-link">Features</a>
+                    <a href="/payment-flow" style={navLinkStyle} className="nav-link">Payment</a>
                     <a href="/contact" style={navLinkStyle} className="nav-link">Contact Us</a>
                     <div style={{ marginLeft: '1rem' }}></div>
                     <Button variant="primary" size="sm" href="#download">Download App</Button>
@@ -152,6 +153,7 @@ export const Header: React.FC = () => {
                     }}>
                         <a href="/#about" onClick={() => setIsMobileMenuOpen(false)} style={{ fontSize: '1.25rem', fontWeight: 600 }}>About</a>
                         <a href="/#features" onClick={() => setIsMobileMenuOpen(false)} style={{ fontSize: '1.25rem', fontWeight: 600 }}>Features</a>
+                        <a href="/payment-flow" onClick={() => setIsMobileMenuOpen(false)} style={{ fontSize: '1.25rem', fontWeight: 600 }}>Payment</a>
                         <a href="/contact" onClick={() => setIsMobileMenuOpen(false)} style={{ fontSize: '1.25rem', fontWeight: 600 }}>Contact Us</a>
                         <Button variant="primary" size="lg" href="#download" onClick={() => setIsMobileMenuOpen(false)} style={{ width: '100%' }}>Download App</Button>
                     </div>
