@@ -1,6 +1,6 @@
 import { CheckInSuccess } from '@/components/gamification/CheckInSuccess';
 import { RewardBadge } from '@/components/ui/RewardBadge';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
     },
     headerSubtitle: {
         fontSize: 14,
@@ -533,11 +533,11 @@ const styles = StyleSheet.create({
     },
     pointsLabel: {
         fontSize: 13,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
     pointsValue: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     checkInCard: {
         marginHorizontal: 20,
@@ -558,14 +558,14 @@ const styles = StyleSheet.create({
     },
     checkInTitle: {
         fontSize: 20,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#000',
         marginBottom: 4,
     },
     checkInSubtitle: {
         fontSize: 13,
         color: '#666',
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
     streakBadge: {
         flexDirection: 'row',
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     },
     streakText: {
         fontSize: 16,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#FF4500',
     },
     calendarContainer: {
@@ -600,11 +600,11 @@ const styles = StyleSheet.create({
     },
     dayNumber: {
         fontSize: 14,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     dayLabel: {
         fontSize: 10,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
     luckyBadge: {
         position: 'absolute',
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     },
     checkInButtonText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -640,11 +640,11 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     seeAll: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     emptyText: {
         textAlign: 'center',
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     },
     luckyDrawTitle: {
         fontSize: 18,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#FFF',
         marginBottom: 6,
     },
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     },
     costTagText: {
         color: '#FFF',
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         fontSize: 12,
     },
     spinsText: {
@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
     },
     rewardTitle: {
         fontSize: 14,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         marginBottom: 8,
     },
     rewardMeta: {
@@ -764,7 +764,7 @@ const styles = StyleSheet.create({
     },
     metaText: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     lockOverlay: {
         position: 'absolute',
@@ -802,6 +802,6 @@ const styles = StyleSheet.create({
     },
     viewMoreText: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     }
 });

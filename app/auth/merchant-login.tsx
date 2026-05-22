@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         marginBottom: Layout.spacing.xs,
     },
     subtitle: {

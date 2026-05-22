@@ -4,6 +4,7 @@ from app.models.merchant import Branch
 from app.models.transaction import Transaction
 from app.models.reward import UserReward, Reward
 from app.models.user import User
+from app.models.order import Order
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func, and_, desc
@@ -268,11 +269,30 @@ def get_merchant_stats():
         target_branch_id = current_branch.id
 
     # 1. Summary Stats (Totals)
-    # Total Points Issued
-    points_query = db.session.query(func.sum(Transaction.points_earned))
+    # Points are awarded from two sources:
+    #   - Transaction.points_earned: merchant manually awards, daily check-in, etc.
+    #   - Order.points_earned: customer pays for an order (_finalize_paid_order)
+    # The dashboard sums both. Order points are filtered to payment_status='paid'
+    # only — once paid they stay even if the order is later cancelled
+    # (mirrors `_finalize_paid_order` + `_cancel_order` actual behavior; points
+    # are not reversed on cancel).
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Total Points Issued — Transaction source
+    tx_points_query = db.session.query(func.coalesce(func.sum(Transaction.points_earned), 0))
     if target_branch_id:
-        points_query = points_query.filter(Transaction.branch_id == target_branch_id)
-    total_points = points_query.scalar() or 0
+        tx_points_query = tx_points_query.filter(Transaction.branch_id == target_branch_id)
+    tx_total_points = float(tx_points_query.scalar() or 0)
+
+    # Total Points Issued — Order source (paid orders)
+    order_points_query = db.session.query(func.coalesce(func.sum(Order.points_earned), 0)).filter(
+        Order.payment_status == 'paid'
+    )
+    if target_branch_id:
+        order_points_query = order_points_query.filter(Order.branch_id == target_branch_id)
+    order_total_points = float(order_points_query.scalar() or 0)
+
+    total_points = tx_total_points + order_total_points
 
     # Total Redemptions
     redemption_query = db.session.query(func.count(UserReward.id)).filter(UserReward.status == 'used')
@@ -280,39 +300,89 @@ def get_merchant_stats():
         redemption_query = redemption_query.filter(UserReward.used_by_branch_id == target_branch_id)
     total_redemptions = redemption_query.scalar() or 0
 
-    # Today's Activity
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_points_query = db.session.query(func.sum(Transaction.points_earned)).filter(Transaction.timestamp >= today_start)
+    # Today's Points — Transaction source
+    tx_today_query = db.session.query(func.coalesce(func.sum(Transaction.points_earned), 0)).filter(
+        Transaction.timestamp >= today_start
+    )
     if target_branch_id:
-        today_points_query = today_points_query.filter(Transaction.branch_id == target_branch_id)
-    today_points = today_points_query.scalar() or 0
+        tx_today_query = tx_today_query.filter(Transaction.branch_id == target_branch_id)
+    tx_today_points = float(tx_today_query.scalar() or 0)
 
-    # 2. Chart Data (Last 7 Days Points)
+    # Today's Points — Order source (paid orders created today)
+    order_today_query = db.session.query(func.coalesce(func.sum(Order.points_earned), 0)).filter(
+        Order.payment_status == 'paid',
+        Order.created_at >= today_start
+    )
+    if target_branch_id:
+        order_today_query = order_today_query.filter(Order.branch_id == target_branch_id)
+    order_today_points = float(order_today_query.scalar() or 0)
+
+    today_points = tx_today_points + order_today_points
+
+    # Today's order activity — paid AND not cancelled (net, not gross)
+    today_orders_query = db.session.query(
+        func.count(Order.id),
+        func.coalesce(func.sum(Order.total), 0.0)
+    ).filter(
+        Order.payment_status == 'paid',
+        Order.status != 'cancelled',
+        Order.created_at >= today_start
+    )
+    if target_branch_id:
+        today_orders_query = today_orders_query.filter(Order.branch_id == target_branch_id)
+    today_orders_count, today_revenue = today_orders_query.one()
+
+    # All-time revenue — same filter, no date bound
+    total_revenue_query = db.session.query(func.coalesce(func.sum(Order.total), 0.0)).filter(
+        Order.payment_status == 'paid',
+        Order.status != 'cancelled'
+    )
+    if target_branch_id:
+        total_revenue_query = total_revenue_query.filter(Order.branch_id == target_branch_id)
+    total_revenue = total_revenue_query.scalar()
+
+    # Today's voucher redemptions (UserReward.used_at within today)
+    today_redemptions_query = db.session.query(func.count(UserReward.id)).filter(
+        UserReward.status == 'used',
+        UserReward.used_at >= today_start
+    )
+    if target_branch_id:
+        today_redemptions_query = today_redemptions_query.filter(UserReward.used_by_branch_id == target_branch_id)
+    today_redemptions = today_redemptions_query.scalar() or 0
+
+    # 2. Chart Data (Last 7 Days Points) — combines Transaction + Order sources
     seven_days_ago = today_start - timedelta(days=6)
-    
-    chart_query = db.session.query(
+
+    # Transaction-source daily points
+    tx_chart_query = db.session.query(
         func.date(Transaction.timestamp).label('date'),
         func.sum(Transaction.points_earned).label('points')
     ).filter(Transaction.timestamp >= seven_days_ago)
-    
     if target_branch_id:
-        chart_query = chart_query.filter(Transaction.branch_id == target_branch_id)
-        
-    chart_data_raw = chart_query.group_by(func.date(Transaction.timestamp)).all()
-    
-    # Process chart data to ensure all days have values
-    chart_map = {str(r.date): r.points for r in chart_data_raw}
+        tx_chart_query = tx_chart_query.filter(Transaction.branch_id == target_branch_id)
+    tx_chart_map = {str(r.date): float(r.points or 0) for r in tx_chart_query.group_by(func.date(Transaction.timestamp)).all()}
+
+    # Order-source daily points (paid orders only)
+    order_chart_query = db.session.query(
+        func.date(Order.created_at).label('date'),
+        func.sum(Order.points_earned).label('points')
+    ).filter(
+        Order.payment_status == 'paid',
+        Order.created_at >= seven_days_ago
+    )
+    if target_branch_id:
+        order_chart_query = order_chart_query.filter(Order.branch_id == target_branch_id)
+    order_chart_map = {str(r.date): float(r.points or 0) for r in order_chart_query.group_by(func.date(Order.created_at)).all()}
+
+    # Merge per-day totals across both sources, filling missing days with 0
     chart_result = []
-    
     labels = []
     data_points = []
-    
     for i in range(7):
         d = seven_days_ago + timedelta(days=i)
         d_str = d.strftime('%Y-%m-%d')
-        label = d.strftime('%d/%m') # dd/mm
-        
-        val = chart_map.get(d_str, 0)
+        label = d.strftime('%d/%m')
+        val = tx_chart_map.get(d_str, 0) + order_chart_map.get(d_str, 0)
         chart_result.append({'date': d_str, 'points': val})
         labels.append(label)
         data_points.append(val)
@@ -321,7 +391,11 @@ def get_merchant_stats():
         'summary': {
             'total_points_issued': round(total_points, 2),
             'total_redemptions': total_redemptions,
-            'today_points_issued': round(today_points, 2)
+            'today_points_issued': round(today_points, 2),
+            'today_orders_count': int(today_orders_count or 0),
+            'today_revenue': round(float(today_revenue or 0), 2),
+            'today_redemptions': int(today_redemptions),
+            'total_revenue': round(float(total_revenue or 0), 2),
         },
         'chart': {
             'labels': labels,
@@ -382,29 +456,64 @@ def get_stat_details():
             })
 
     elif stat_type == 'points':
-        query = db.session.query(Transaction)\
+        # Two sources contribute to a user's point balance:
+        #   - Transaction: merchant manual awards, check-in, etc.
+        #   - Order (paid): customer pays for an order → `_finalize_paid_order`
+        # The modal merges both, ordered by timestamp desc, capped at 100.
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) if period == 'today' else None
+
+        # Transactions
+        tx_query = db.session.query(Transaction)\
             .join(User)\
             .join(Branch)\
             .order_by(desc(Transaction.timestamp))
-
         if target_branch_id:
-            query = query.filter(Transaction.branch_id == target_branch_id)
-            
-        if period == 'today':
-            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-            query = query.filter(Transaction.timestamp >= today_start)
-            
-        # Fetch last 100
-        items = query.limit(100).all()
+            tx_query = tx_query.filter(Transaction.branch_id == target_branch_id)
+        if today_start:
+            tx_query = tx_query.filter(Transaction.timestamp >= today_start)
+        tx_items = tx_query.limit(100).all()
 
-        for item in items:
+        for item in tx_items:
             results.append({
-                'id': item.id,
+                'id': f'tx_{item.id}',
+                'source': 'transaction',
+                'reference': None,
                 'amount': item.amount_spent,
                 'points': item.points_earned,
-                'branch_name': item.branch.name, # Transaction has branch relationship usually
+                'branch_name': item.branch.name,
                 'user_name': item.member.username,
                 'timestamp': item.timestamp.isoformat()
             })
+
+        # Orders (paid only, with awarded points)
+        order_query = db.session.query(Order)\
+            .join(User, Order.user_id == User.id)\
+            .join(Branch, Order.branch_id == Branch.id)\
+            .filter(
+                Order.payment_status == 'paid',
+                Order.points_earned > 0
+            )\
+            .order_by(desc(Order.created_at))
+        if target_branch_id:
+            order_query = order_query.filter(Order.branch_id == target_branch_id)
+        if today_start:
+            order_query = order_query.filter(Order.created_at >= today_start)
+        order_items = order_query.limit(100).all()
+
+        for item in order_items:
+            results.append({
+                'id': f'order_{item.id}',
+                'source': 'order',
+                'reference': item.order_number,
+                'amount': item.total,
+                'points': item.points_earned,
+                'branch_name': item.branch.name if item.branch else 'Unknown',
+                'user_name': item.user.username if item.user else 'Unknown',
+                'timestamp': item.created_at.isoformat()
+            })
+
+        # Merge: sort by timestamp desc, cap at 100
+        results.sort(key=lambda r: r['timestamp'] or '', reverse=True)
+        results = results[:100]
 
     return jsonify(results), 200

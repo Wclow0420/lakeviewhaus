@@ -1,8 +1,8 @@
 import { Badge } from '@/components/ui/Badge';
 import { SettingsModal } from '@/components/modals/user/SettingsModal';
-import { TransactionHistoryModal } from '@/components/modals/user/TransactionHistoryModal';
+import { PointsHistoryModal } from '@/components/modals/user/PointsHistoryModal';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors, RANKS } from '@/constants/theme';
+import { Colors, Fonts, RANKS } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -28,7 +28,7 @@ export default function ProfileScreen() {
     const [activeVouchersCount, setActiveVouchersCount] = useState(0);
     const [streak, setStreak] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
+    const [showPointsHistory, setShowPointsHistory] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
 
     // Mock data
@@ -195,14 +195,17 @@ export default function ProfileScreen() {
 
                 {/* Stats Card */}
                 <View style={[styles.statsCard, { backgroundColor: theme.card }]}>
-                    <View style={styles.statItem}>
+                    <TouchableOpacity style={styles.statItem} onPress={() => setShowPointsHistory(true)}>
                         <Ionicons name="star" size={24} color={theme.primary} />
                         <Text style={[styles.statValue, { color: theme.text }]}>{points}</Text>
                         <Text style={[styles.statLabel, { color: theme.icon }]}>Points</Text>
-                    </View>
+                    </TouchableOpacity>
                     <View style={[styles.divider, { backgroundColor: theme.border }]} />
-                    <TouchableOpacity style={styles.statItem} onPress={() => setShowHistory(true)}>
-                        <Ionicons name="receipt-outline" size={24} color={theme.secondary} />
+                    <TouchableOpacity style={styles.statItem} onPress={() => router.push('/orders')}>
+                        <View style={styles.iconWithBadge}>
+                            <Ionicons name="receipt-outline" size={24} color={theme.secondary} />
+                            <Badge count={user?.pending_orders_count || 0} />
+                        </View>
                         <Text style={[styles.statValue, { color: theme.text }]}>{user?.orders_count || 0}</Text>
                         <Text style={[styles.statLabel, { color: theme.icon }]}>Orders</Text>
                     </TouchableOpacity>
@@ -238,9 +241,9 @@ export default function ProfileScreen() {
                 </View>
             </View>
 
-            <TransactionHistoryModal
-                visible={showHistory}
-                onClose={() => setShowHistory(false)}
+            <PointsHistoryModal
+                visible={showPointsHistory}
+                onClose={() => setShowPointsHistory(false)}
             />
             <SettingsModal
                 visible={showSettings}
@@ -280,12 +283,12 @@ const styles = StyleSheet.create({
     },
     avatarText: {
         fontSize: 24,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#000',
     },
     userName: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
     },
     rankBadge: {
         flexDirection: 'row',
@@ -295,7 +298,7 @@ const styles = StyleSheet.create({
     },
     rankText: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     iconButton: {
         padding: 8,
@@ -334,7 +337,7 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontSize: 18,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     dot: {
         width: 8,
@@ -348,17 +351,17 @@ const styles = StyleSheet.create({
     },
     bigNum: {
         fontSize: 20,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         marginTop: 10,
     },
     referralCode: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         marginTop: 4,
     },
     smallCardTitle: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     voucherBadge: {
         width: 20,
@@ -369,7 +372,7 @@ const styles = StyleSheet.create({
     },
     voucherBadgeText: {
         fontSize: 10,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#000',
     },
     smallCardContent: {
@@ -389,13 +392,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 6,
     },
+    iconWithBadge: {
+        position: 'relative',
+    },
     statValue: {
         fontSize: 24,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
     },
     statLabel: {
         fontSize: 12,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
     divider: {
         width: 1,
@@ -413,11 +419,12 @@ const styles = StyleSheet.create({
     },
     bannerTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         marginBottom: 4,
     },
     bannerDesc: {
         fontSize: 12,
+        fontFamily: Fonts.regular,
         lineHeight: 18,
     },
 });

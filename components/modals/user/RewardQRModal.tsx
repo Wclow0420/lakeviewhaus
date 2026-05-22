@@ -1,5 +1,5 @@
 import { BaseModal } from '@/components/ui/BaseModal';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     },
     rewardTitle: {
         fontSize: 22,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         textAlign: 'center',
         marginBottom: 8,
     },
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     },
     watermarkText: {
         fontSize: 32,
-        fontWeight: '900',
+        fontFamily: Fonts.bold,
         color: '#4CAF50',
         letterSpacing: 4,
     },
@@ -179,13 +179,13 @@ const styles = StyleSheet.create({
     },
     codeLabel: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         textTransform: 'uppercase',
         marginBottom: 4,
     },
     codeValue: {
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         letterSpacing: 4,
     },
     expirySection: {
@@ -202,12 +202,12 @@ const styles = StyleSheet.create({
     },
     expiryLabel: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         marginBottom: 2,
     },
     expiryDate: {
         fontSize: 14,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     instructions: {
         flexDirection: 'row',

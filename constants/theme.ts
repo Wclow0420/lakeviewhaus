@@ -4,8 +4,6 @@
  * Inspiration: Clean financial/lifestyle app with floating nav
  */
 
-import { Platform } from 'react-native';
-
 // Colors from the screenshot inspiration
 const primaryYellow = '#FCD259'; // The warm yellow/mustard
 const primaryBlack = '#000000';
@@ -97,11 +95,20 @@ export const Layout = {
   },
 };
 
-export const Fonts = Platform.select({
-  ios: { sans: 'System', rounded: 'System' },
-  android: { sans: 'Roboto', rounded: 'Roboto' },
-  default: { sans: 'System', rounded: 'System' },
-});
+// Plus Jakarta Sans is the app's brand font — loaded in app/_layout.tsx via
+// @expo-google-fonts and auto-applied to every <Text> via utils/fonts.ts.
+// These constants let components opt into an explicit weight when needed
+// (e.g. nested spans that need a specific weight without relying on fontWeight
+// mapping, or animations that change weight at runtime).
+export const Fonts = {
+  regular: 'PlusJakartaSans_400Regular',
+  medium: 'PlusJakartaSans_500Medium',
+  semibold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+  // Legacy names kept for backward-compat with anything that referenced them
+  sans: 'PlusJakartaSans_400Regular',
+  rounded: 'PlusJakartaSans_400Regular',
+};
 
 export const RANKS = {
   Bronze: {

@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect } from 'react';
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         marginBottom: 2,
     },
     message: {

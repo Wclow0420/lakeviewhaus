@@ -14,3 +14,4 @@ uuid6
 flask-socketio
 gevent
 resend
+APScheduler==3.10.4

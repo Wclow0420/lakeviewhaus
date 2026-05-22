@@ -40,13 +40,25 @@ def get_public_products():
         return jsonify({'error': 'branch_id required'}), 400
 
     query = Product.query.filter_by(branch_id=branch_id)
-    
+
     category_id = request.args.get('category_id')
     if category_id:
         query = query.filter_by(category_id=category_id)
-        
+
     products = query.order_by(Product.is_active.desc(), Product.name).all()
     return jsonify([p.to_dict() for p in products]), 200
+
+@bp.route('/menu/products/<product_id>', methods=['GET'])
+def get_public_product(product_id):
+    """Get a single product with its options (for cart item editing)"""
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    if not product.is_active:
+        return jsonify({'error': 'Product is not available'}), 404
+
+    return jsonify(product.to_dict()), 200
 
 # --- MARKETING ---
 

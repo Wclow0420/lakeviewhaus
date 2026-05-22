@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Fonts } from '@/constants/theme';
 
 interface RewardBadgeProps {
     type: string;          // e.g. 'free_item', 'discount_percentage', 'discount_fixed'
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     },
     text: {
         fontSize: 10,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         color: '#FFFFFF',
         textTransform: 'uppercase',
     }

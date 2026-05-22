@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     },
     text: {
         fontSize: 10,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         letterSpacing: 0.2,
     }
 });

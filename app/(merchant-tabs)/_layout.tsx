@@ -8,11 +8,12 @@ import Animated, {
     useSharedValue,
     withSpring
 } from 'react-native-reanimated';
+import { OrderAlertsHost } from '@/components/merchant/OrderAlertsHost';
 
 // Get screen width
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const TAB_BAR_WIDTH = SCREEN_WIDTH * 0.85;
-const TAB_COUNT = 5;
+const TAB_COUNT = 6;
 const TAB_ITEM_WIDTH = (TAB_BAR_WIDTH - 20) / TAB_COUNT; // Account for padding
 
 // Theme Colors (Same warm theme but potentially inverted or tweaked for merchant later)
@@ -26,24 +27,30 @@ const COLORS = {
 // Merchant Tab Icons
 // 1. Home (Dashboard)
 // 2. Voucher
-// 3. Scan
-// 4. Menu
-// 5. Profile
-const TAB_ICONS = ['stats-chart', 'ticket', 'scan', 'restaurant', 'storefront'];
+// 3. Orders
+// 4. Scan
+// 5. Menu
+// 6. Profile
+const TAB_ICONS = ['stats-chart', 'ticket', 'receipt', 'scan', 'restaurant', 'storefront'];
 
 export default function MerchantTabLayout() {
     return (
-        <Tabs
-            tabBar={(props) => <CustomTabBar {...props} />}
-            screenOptions={{
-                headerShown: false,
-            }}>
-            <Tabs.Screen name="index" options={{ headerShown: false }} />
-            <Tabs.Screen name="voucher/index" options={{ headerShown: false }} />
-            <Tabs.Screen name="scan/index" options={{ headerShown: false }} />
-            <Tabs.Screen name="menu/index" options={{ headerShown: false }} />
-            <Tabs.Screen name="profile/index" options={{ headerShown: false }} />
-        </Tabs>
+        <View style={{ flex: 1 }}>
+            <Tabs
+                tabBar={(props) => <CustomTabBar {...props} />}
+                screenOptions={{
+                    headerShown: false,
+                }}>
+                <Tabs.Screen name="index" options={{ headerShown: false }} />
+                <Tabs.Screen name="voucher/index" options={{ headerShown: false }} />
+                <Tabs.Screen name="orders" options={{ headerShown: false }} />
+                <Tabs.Screen name="scan/index" options={{ headerShown: false }} />
+                <Tabs.Screen name="menu/index" options={{ headerShown: false }} />
+                <Tabs.Screen name="profile/index" options={{ headerShown: false }} />
+            </Tabs>
+            {/* Auto-print + alarm + ack banners — runs across all merchant tabs */}
+            <OrderAlertsHost />
+        </View>
     );
 }
 

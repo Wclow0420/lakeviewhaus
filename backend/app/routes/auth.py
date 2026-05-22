@@ -463,9 +463,19 @@ def me():
         user = User.query.get(current_identity)
         if user:
             ensure_referral_code(user)
-            
-            # Get Orders Count
-            orders_count = Transaction.query.filter_by(member_id=user.id).count()
+
+            # Count orders placed by this user (food ordering system, excludes cancelled).
+            from app.models.order import Order
+            orders_count = Order.query.filter(
+                Order.user_id == user.id,
+                Order.status != 'cancelled',
+            ).count()
+
+            # Count pending (unpaid) orders so the profile can show a badge.
+            pending_orders_count = Order.query.filter(
+                Order.user_id == user.id,
+                Order.status == 'pending',
+            ).count()
             
             return jsonify({
                 'id': user.id,
@@ -479,6 +489,7 @@ def me():
                 'referral_code': user.referral_code,
                 'referred_by_id': user.referred_by_id,
                 'orders_count': orders_count,
+                'pending_orders_count': pending_orders_count,
                 'type': 'member'
             })
 

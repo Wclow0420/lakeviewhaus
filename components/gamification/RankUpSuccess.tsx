@@ -11,7 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
 import * as Haptics from 'expo-haptics';
-import { RANKS } from '@/constants/theme';
+import { Fonts, RANKS } from '@/constants/theme';
 
 interface RankUpSuccessProps {
     visible: boolean;
@@ -186,11 +186,11 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.5)',
         fontSize: 16,
         letterSpacing: 2,
-        fontWeight: '600'
+        fontFamily: Fonts.semibold
     },
     title: {
         fontSize: 36,
-        fontWeight: '900',
+        fontFamily: Fonts.bold,
         marginTop: 0,
         letterSpacing: 2,
         textShadowColor: 'rgba(0,0,0,0.5)',
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     },
     rankName: {
         fontSize: 32,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         textTransform: 'uppercase',
         marginTop: 8,
         marginBottom: 30,

@@ -287,7 +287,91 @@ export const api = {
         getBranches: () => api.get('/customer/branches'),
         getCategories: (branchId: number) => api.get(`/customer/menu/categories?branch_id=${branchId}`),
         getProducts: (branchId: number, categoryId?: number) => api.get(`/customer/menu/products?branch_id=${branchId}${categoryId ? `&category_id=${categoryId}` : ''}`),
+        getProduct: (productId: string) => api.get(`/customer/menu/products/${productId}`),
         getBanners: () => api.get('/customer/marketing/banners'),
         getTopPicks: () => api.get('/customer/marketing/top-picks'),
+    },
+
+    // Payment (Billplz)
+    payment: {
+        createBill: (data: {
+            amount: number;  // Amount in cents (e.g., 1000 = RM 10.00)
+            description: string;
+            mobile?: string;
+            metadata?: any;
+            reference_1_label?: string;
+            reference_1?: string;
+        }) => api.post('/payment/create-bill', data),
+
+        getStatus: (billId: string) => api.get(`/payment/status/${billId}`),
+
+        getHistory: (params?: { page?: number; per_page?: number; status?: string }) => {
+            const searchParams = new URLSearchParams();
+            if (params?.page) searchParams.append('page', params.page.toString());
+            if (params?.per_page) searchParams.append('per_page', params.per_page.toString());
+            if (params?.status) searchParams.append('status', params.status);
+            return api.get(`/payment/history${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+        },
+
+        cancelPayment: (billId: string) => api.delete(`/payment/cancel/${billId}`),
+
+        getConfig: () => api.get('/payment/config'),
+    },
+
+    // Orders (Food Ordering System)
+    order: {
+        // Customer endpoints
+        create: (data: {
+            branch_id: string;
+            order_type: 'dine_in' | 'pickup';
+            table_number?: string;
+            items: any[];
+            notes?: string;
+        }) => api.post('/order/create', data),
+
+        getHistory: (params?: { page?: number; per_page?: number; status?: string }) => {
+            const searchParams = new URLSearchParams();
+            if (params?.page) searchParams.append('page', params.page.toString());
+            if (params?.per_page) searchParams.append('per_page', params.per_page.toString());
+            if (params?.status) searchParams.append('status', params.status);
+            return api.get(`/order/history${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+        },
+
+        getDetails: (orderId: string) => api.get(`/order/${orderId}`),
+
+        createPayment: (orderId: string) => api.post(`/order/${orderId}/payment`, {}),
+
+        verifyPayment: (orderId: string) => api.post(`/order/${orderId}/verify-payment`, {}),
+
+        cancel: (orderId: string) => api.post(`/order/${orderId}/cancel`, {}),
+
+        // Merchant endpoints
+        merchant: {
+            getOrders: (params?: {
+                branch_id?: string;
+                status?: string;
+                date?: 'today' | 'week' | 'all';
+                page?: number;
+                per_page?: number;
+            }) => {
+                const searchParams = new URLSearchParams();
+                if (params?.branch_id) searchParams.append('branch_id', params.branch_id);
+                if (params?.status) searchParams.append('status', params.status);
+                if (params?.date) searchParams.append('date', params.date);
+                if (params?.page) searchParams.append('page', params.page.toString());
+                if (params?.per_page) searchParams.append('per_page', params.per_page.toString());
+                return api.get(`/order/merchant/list${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+            },
+
+            updateStatus: (orderId: string, status: 'confirmed' | 'preparing' | 'ready' | 'completed') =>
+                api.put(`/order/${orderId}/status`, { status }),
+
+            getCounts: (params?: { date?: 'today' | 'week' | 'all' }) => {
+                const searchParams = new URLSearchParams();
+                if (params?.date) searchParams.append('date', params.date);
+                const qs = searchParams.toString();
+                return api.get(`/order/merchant/counts${qs ? `?${qs}` : ''}`);
+            },
+        }
     }
 };

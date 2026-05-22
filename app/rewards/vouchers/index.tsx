@@ -1,7 +1,7 @@
 import { RewardQRModal } from '@/components/modals/user/RewardQRModal';
 import { RewardBadge } from '@/components/ui/RewardBadge';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
 import { socketService } from '@/services/socket';
@@ -215,11 +215,11 @@ export default function VouchersScreen() {
                         <View style={styles.contextRow}>
                             {reward.status === 'used' ? (
                                 <Text style={[styles.contextText, { color: theme.text }]}>
-                                    Used at: <Text style={{ fontWeight: '600' }}>{reward.used_at_branch_name || 'Unknown Branch'}</Text>
+                                    Used at: <Text style={{ fontFamily: Fonts.semibold }}>{reward.used_at_branch_name || 'Unknown Branch'}</Text>
                                 </Text>
                             ) : (
                                 <Text style={[styles.contextText, { color: theme.icon }]}>
-                                    Valid at: <Text style={{ fontWeight: '600', color: theme.text }}>
+                                    Valid at: <Text style={{ fontFamily: Fonts.semibold, color: theme.text }}>
                                         {reward.valid_at_branch_name || 'All Branches'}
                                     </Text>
                                 </Text>
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     loadingContainer: {
         flex: 1,
@@ -382,11 +382,12 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         marginTop: 20,
     },
     emptySubtext: {
         fontSize: 14,
+        fontFamily: Fonts.regular,
         marginTop: 8,
         textAlign: 'center',
     },
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         marginBottom: 12,
     },
 
@@ -446,11 +447,11 @@ const styles = StyleSheet.create({
     },
     ticketTitle: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     targetName: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         marginTop: 2,
     },
     statusBadge: {
@@ -460,7 +461,7 @@ const styles = StyleSheet.create({
     },
     statusText: {
         fontSize: 10,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         color: '#fff',
     },
     discountBadge: {
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
     },
     discountBadgeText: {
         fontSize: 10,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         color: '#fff',
     },
     contextRow: {
@@ -479,6 +480,7 @@ const styles = StyleSheet.create({
     },
     contextText: {
         fontSize: 12,
+        fontFamily: Fonts.regular,
     },
     ticketInfo: {
         flexDirection: 'row',
@@ -492,7 +494,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 11,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
 
     // Dashed Separator
@@ -535,12 +537,12 @@ const styles = StyleSheet.create({
     },
     codeLabel: {
         fontSize: 10,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         textTransform: 'uppercase',
     },
     codeValue: {
         fontSize: 18,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         letterSpacing: 2,
     },
     tapHint: {
@@ -550,9 +552,10 @@ const styles = StyleSheet.create({
     },
     tapHintText: {
         fontSize: 11,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     usedAtText: {
         fontSize: 11,
+        fontFamily: Fonts.regular,
     },
 });

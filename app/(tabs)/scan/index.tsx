@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
     },
     tabContainer: {
         flexDirection: 'row',
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     tabText: {
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         fontSize: 14,
     },
     content: {
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     permButtonText: {
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     fullScreen: {
         flex: 1,
@@ -362,13 +362,13 @@ const styles = StyleSheet.create({
     },
     avatarText: {
         color: '#000',
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         fontSize: 20,
     },
     memberName: {
         color: '#FFF',
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     memberRank: {
         color: '#888',

@@ -1,5 +1,5 @@
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
@@ -103,14 +103,14 @@ export default function ReferralScreen() {
                                     <Text style={[styles.rewardValue, { color: theme.text }]} numberOfLines={2}>
                                         {referrer_reward.title}
                                     </Text>
-                                    <Text style={{ color: theme.primary, fontWeight: '800', marginTop: 2, fontSize: 12 }}>
+                                    <Text style={{ color: theme.primary, fontFamily: Fonts.bold, marginTop: 2, fontSize: 12 }}>
                                         {getRewardDetailText(referrer_reward)}
                                     </Text>
                                 </>
                             )}
 
                             {referrer_points > 0 && (
-                                <Text style={{ color: '#F57C00', fontWeight: 'bold', marginTop: 4 }}>
+                                <Text style={{ color: '#F57C00', fontFamily: Fonts.bold, marginTop: 4 }}>
                                     + {referrer_points} Points
                                 </Text>
                             )}
@@ -131,14 +131,14 @@ export default function ReferralScreen() {
                                     <Text style={[styles.rewardValue, { color: theme.text }]} numberOfLines={2}>
                                         {referee_reward.title}
                                     </Text>
-                                    <Text style={{ color: '#4CAF50', fontWeight: '800', marginTop: 2, fontSize: 12 }}>
+                                    <Text style={{ color: '#4CAF50', fontFamily: Fonts.bold, marginTop: 2, fontSize: 12 }}>
                                         {getRewardDetailText(referee_reward)}
                                     </Text>
                                 </>
                             )}
 
                             {referee_points > 0 && (
-                                <Text style={{ color: '#F57C00', fontWeight: 'bold', marginTop: 4 }}>
+                                <Text style={{ color: '#F57C00', fontFamily: Fonts.bold, marginTop: 4 }}>
                                     + {referee_points} Points
                                 </Text>
                             )}
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
     },
     container: {
         padding: 16,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     },
     rewardTitle: {
         fontSize: 14,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         letterSpacing: 1,
         marginBottom: 16,
     },
@@ -283,13 +283,13 @@ const styles = StyleSheet.create({
     },
     rewardLabel: {
         fontSize: 10,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         marginBottom: 4,
         textTransform: 'uppercase',
     },
     rewardValue: {
         fontSize: 14,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         textAlign: 'center',
     },
     divider: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     },
     heroTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         color: '#FFF',
         marginBottom: 8,
     },
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     codeText: {
         color: '#FFF',
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         letterSpacing: 2,
     },
     actionRow: {
@@ -358,10 +358,10 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     actionText: {
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     actionText2: {
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         color: '#FFF',
     },
     inputSection: {
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         marginBottom: 4,
     },
     sectionDesc: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     },
     submitText: {
         color: '#FFF',
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
     },
     successBanner: {
         flexDirection: 'row',
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
         gap: 8
     },
     successText: {
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         fontSize: 16,
     },
     tips: {

@@ -6,10 +6,11 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL } from '@/services/api';
+import { printerService } from '@/services/printer';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Dimensions, Image, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +23,54 @@ export default function MerchantProfileScreen() {
     const [managerVisible, setManagerVisible] = useState(false);
     const [settingsVisible, setSettingsVisible] = useState(false);
     const [referralConfigVisible, setReferralConfigVisible] = useState(false);
+
+    // Print Station State
+    const [printStationOn, setPrintStationOn] = useState(false);
+    const [printerAvailable, setPrinterAvailable] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            const [enabled, available] = await Promise.all([
+                printerService.loadPrintStation(),
+                printerService.isAvailable(),
+            ]);
+            if (!cancelled) {
+                setPrintStationOn(enabled);
+                setPrinterAvailable(available);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
+    const handleTogglePrintStation = async (next: boolean) => {
+        if (next && !printerAvailable) {
+            Alert.alert(
+                'Printer not detected',
+                'No SUNMI printer was found on this device. Print Station can only be enabled on a SUNMI V3 Mix (or compatible SUNMI handheld) with the printer service running.',
+            );
+            return;
+        }
+        if (next) {
+            Alert.alert(
+                'Enable Print Station?',
+                'This device will auto-print stickers and play an alarm whenever a paid order arrives. Make sure only ONE device per branch has this enabled — otherwise you\'ll get duplicate stickers.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Enable',
+                        onPress: async () => {
+                            await printerService.setPrintStation(true);
+                            setPrintStationOn(true);
+                        },
+                    },
+                ],
+            );
+        } else {
+            await printerService.setPrintStation(false);
+            setPrintStationOn(false);
+        }
+    };
 
     const handleTilePress = () => {
         if (user?.is_main) {
@@ -138,6 +187,32 @@ export default function MerchantProfileScreen() {
                         <Ionicons name="cloud-done" size={60} color="#90CAF9" style={{ opacity: 0.8 }} />
                     </View>
                 )}
+
+                {/* Print Station — auto-print stickers on paid orders */}
+                <View style={[styles.printStationRow, { backgroundColor: theme.card, marginTop: 15 }]}>
+                    <View style={styles.printStationLeft}>
+                        <View style={[styles.printStationIcon, { backgroundColor: '#FFF8E1' }]}>
+                            <Ionicons name="print" size={22} color="#F57F17" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.bannerTitle, { color: theme.text }]}>Print Station</Text>
+                            <Text style={[styles.bannerDesc, { color: theme.icon }]}>
+                                {printerAvailable
+                                    ? (printStationOn
+                                        ? 'Auto-prints cup stickers on paid orders'
+                                        : 'Disabled on this device')
+                                    : 'Not a SUNMI device — can\'t print here'}
+                            </Text>
+                        </View>
+                    </View>
+                    <Switch
+                        value={printStationOn}
+                        onValueChange={handleTogglePrintStation}
+                        disabled={!printerAvailable}
+                        trackColor={{ false: '#CCCCCC', true: theme.primary }}
+                        thumbColor="#FFFFFF"
+                    />
+                </View>
 
                 <TouchableOpacity
                     style={[styles.banner, { backgroundColor: '#F3E5F5', marginTop: 15 }]}
@@ -276,6 +351,28 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         overflow: 'hidden',
+    },
+    printStationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderRadius: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        gap: 12,
+    },
+    printStationLeft: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    printStationIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     bannerTitle: {
         fontSize: 18,

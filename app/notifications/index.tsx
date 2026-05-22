@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/Badge';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useNotifications } from '@/context/NotificationContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,7 +68,7 @@ export default function NotificationsScreen() {
                     </View>
                     <View style={styles.rightCol}>
                         <View style={styles.headerRow}>
-                            <Text style={[styles.title, { color: theme.text, fontWeight: isRead ? '600' : '800' }]}>
+                            <Text style={[styles.title, { color: theme.text, fontFamily: isRead ? Fonts.semibold : Fonts.bold }]}>
                                 {item.title}
                             </Text>
                             <Text style={[styles.date, { color: theme.icon }]}>
@@ -138,11 +138,11 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
     },
     readAll: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     center: {
         flex: 1,
@@ -207,6 +207,6 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 16,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     }
 });

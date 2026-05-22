@@ -1,4 +1,4 @@
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React from 'react';
 import { ActivityIndicator, Text, TextStyle, TouchableOpacity, TouchableOpacityProps, ViewStyle } from 'react-native';
@@ -71,7 +71,7 @@ export const Button: React.FC<ButtonProps> = ({
     const textStyle: TextStyle = {
         color: getTextColor(),
         fontSize: size === 'sm' ? 14 : size === 'lg' ? 18 : 16,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     };
 
     const handlePressIn = () => {

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
@@ -195,7 +195,7 @@ export default function LuckyDrawDetailScreen() {
                         <View style={styles.limitBox}>
                             <Ionicons name="time-outline" size={16} color={theme.primary} style={{ marginRight: 6 }} />
                             <Text style={[styles.limitText, { color: theme.icon }]}>
-                                Hurry! Only <Text style={{ fontWeight: '700', color: theme.text }}>{draw.remaining_spins}</Text> spins remaining
+                                Hurry! Only <Text style={{ fontFamily: Fonts.bold, color: theme.text }}>{draw.remaining_spins}</Text> spins remaining
                             </Text>
                         </View>
                     )}
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         marginBottom: 8,
     },
     pointsBadge: {
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     },
     pointsText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     limitBox: {
         flexDirection: 'row',
@@ -329,11 +329,11 @@ const styles = StyleSheet.create({
     },
     limitText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
     sectionHeader: {
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         marginBottom: 12,
     },
     description: {
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     },
     prizeName: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     prizeType: {
         fontSize: 12,

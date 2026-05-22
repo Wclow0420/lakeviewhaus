@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
@@ -72,6 +72,6 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     }
 });

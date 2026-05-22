@@ -1,5 +1,5 @@
 import { BaseModal } from '@/components/ui/BaseModal';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -84,7 +84,7 @@ export function BranchSelector({ selectedBranchId, onSelectBranch, searchQuery, 
             {/* Top Row: Title + Search */}
             <View style={styles.topRow}>
                 <Text style={[styles.pageTitle, { color: theme.text }]}>Menu</Text>
-                <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground }]}>
+                <View style={[styles.searchContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
                     <Ionicons name="search" size={16} color={theme.icon} style={{ marginRight: 8 }} />
                     <TextInput
                         style={[styles.searchInput, { color: theme.text }]}
@@ -169,7 +169,7 @@ export function BranchSelector({ selectedBranchId, onSelectBranch, searchQuery, 
                                             styles.gridBranchName,
                                             {
                                                 color: item.id === selectedBranchId ? theme.primary : theme.text,
-                                                fontWeight: item.id === selectedBranchId ? '700' : '600'
+                                                fontFamily: item.id === selectedBranchId ? Fonts.bold : Fonts.semibold,
                                             }
                                         ]}
                                     >
@@ -201,20 +201,22 @@ const styles = StyleSheet.create({
     },
     pageTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         marginRight: 16,
     },
     searchContainer: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        height: 36,
-        borderRadius: 18,
-        paddingHorizontal: 12,
+        height: 40,
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        borderWidth: 1,
     },
     searchInput: {
         flex: 1,
         fontSize: 14,
+        fontFamily: Fonts.regular,
         height: '100%',
     },
     selectorRow: {
@@ -228,10 +230,11 @@ const styles = StyleSheet.create({
     },
     branchName: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     subtext: {
         fontSize: 12,
+        fontFamily: Fonts.regular,
     },
     gridRow: {
         justifyContent: 'space-between',
@@ -256,6 +259,7 @@ const styles = StyleSheet.create({
     },
     gridBranchName: {
         fontSize: 11,
+        fontFamily: Fonts.semibold,
         textAlign: 'center',
         marginTop: 8,
         paddingHorizontal: 2,
@@ -268,7 +272,7 @@ const styles = StyleSheet.create({
     },
     hqText: {
         fontSize: 10,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         color: '#FFFFFF',
     },
 });

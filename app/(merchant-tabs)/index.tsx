@@ -3,9 +3,11 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
+import { socketService } from '@/services/socket';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useState } from 'react';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -26,6 +28,10 @@ interface DashboardStats {
         total_points_issued: number;
         total_redemptions: number;
         today_points_issued: number;
+        today_orders_count: number;
+        today_revenue: number;
+        today_redemptions: number;
+        total_revenue: number;
     };
     chart: {
         labels: string[];
@@ -51,13 +57,13 @@ export default function MerchantDashboard() {
     const [detailsData, setDetailsData] = useState<any[]>([]);
     const [detailsLoading, setDetailsLoading] = useState(false);
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
 
             // 0. Auth Check
             if (!user) {
-                setLoading(false);
+                if (!silent) setLoading(false);
                 return;
             }
 
@@ -72,19 +78,37 @@ export default function MerchantDashboard() {
             setStats(statsData);
 
         } catch (error: any) {
-            console.error(error);
-            Alert.alert('Error', 'Failed to load dashboard data');
+            if (!silent) {
+                console.error(error);
+                Alert.alert('Error', 'Failed to load dashboard data');
+            }
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
             setRefreshing(false);
         }
-    }, [isMain, selectedBranchId]);
+    }, [isMain, selectedBranchId, user]);
 
     useFocusEffect(
         useCallback(() => {
             loadData();
         }, [loadData])
     );
+
+    // Live-refresh on order_update — debounced so a burst of webhook events
+    // coalesces into one refetch. Mirrors the orders dashboard pattern.
+    const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        const handler = () => {
+            if (refetchTimer.current) clearTimeout(refetchTimer.current);
+            refetchTimer.current = setTimeout(() => loadData(true), 400);
+        };
+        socketService.on('order_update', handler);
+        return () => {
+            socketService.off('order_update', handler);
+            if (refetchTimer.current) clearTimeout(refetchTimer.current);
+        };
+    }, [loadData]);
+
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -217,15 +241,88 @@ export default function MerchantDashboard() {
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
             >
-                {/* Stats Grid */}
+                {/* Hero Revenue Card */}
+                <TouchableOpacity
+                    style={[styles.heroCard, { backgroundColor: theme.card }]}
+                    onPress={() => router.push('/(merchant-tabs)/orders')}
+                    activeOpacity={0.85}
+                >
+                    <View style={styles.heroRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.heroLabel, { color: theme.icon }]}>Today&apos;s Revenue</Text>
+                            <Text style={[styles.heroValue, { color: theme.text }]}>
+                                RM {(stats?.summary.today_revenue ?? 0).toFixed(2)}
+                            </Text>
+                            <Text style={[styles.heroSubline, { color: theme.success }]}>
+                                {stats?.summary.today_orders_count ?? 0} order{(stats?.summary.today_orders_count ?? 0) === 1 ? '' : 's'} today · Tap to view
+                            </Text>
+                        </View>
+                        <View style={[styles.heroIconCircle, { backgroundColor: theme.success + '20' }]}>
+                            <Ionicons name="trending-up" size={28} color={theme.success} />
+                        </View>
+                    </View>
+                </TouchableOpacity>
+
+                {/* 2x2 Stats Grid */}
                 <View style={styles.statsGrid}>
-                    {/* Points Issued */}
+                    {/* Today's Orders */}
+                    <TouchableOpacity
+                        style={[styles.statCard, { backgroundColor: theme.card }]}
+                        onPress={() => router.push('/(merchant-tabs)/orders')}
+                    >
+                        <View style={[styles.iconCircle, { backgroundColor: theme.primary + '20' }]}>
+                            <Ionicons name="receipt" size={24} color={theme.primary} />
+                        </View>
+                        <Text style={[styles.statValue, { color: theme.text }]}>
+                            {stats?.summary.today_orders_count ?? 0}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: theme.icon }]}>Today&apos;s Orders</Text>
+                        <View style={styles.tapIndicator}>
+                            <Text style={{ fontSize: 10, color: theme.primary }}>View list</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Today's Redemptions */}
+                    <TouchableOpacity
+                        style={[styles.statCard, { backgroundColor: theme.card }]}
+                        onPress={() => handleShowDetails('redemptions', 'today')}
+                    >
+                        <View style={[styles.iconCircle, { backgroundColor: '#FF9F0A20' }]}>
+                            <Ionicons name="gift" size={24} color="#FF9F0A" />
+                        </View>
+                        <Text style={[styles.statValue, { color: theme.text }]}>
+                            {stats?.summary.today_redemptions ?? 0}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: theme.icon }]}>Today&apos;s Redemptions</Text>
+                        <View style={styles.tapIndicator}>
+                            <Text style={{ fontSize: 10, color: '#FF9F0A' }}>Tap for details</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Today's Points */}
+                    <TouchableOpacity
+                        style={[styles.statCard, { backgroundColor: theme.card }]}
+                        onPress={() => handleShowDetails('points', 'today')}
+                    >
+                        <View style={[styles.iconCircle, { backgroundColor: theme.success + '20' }]}>
+                            <Ionicons name="star" size={24} color={theme.success} />
+                        </View>
+                        <Text style={[styles.statValue, { color: theme.text }]}>
+                            {stats?.summary.today_points_issued ?? 0}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: theme.icon }]}>Today&apos;s Points</Text>
+                        <View style={styles.tapIndicator}>
+                            <Text style={{ fontSize: 10, color: theme.success }}>Tap for details</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Total Points Issued (all-time, secondary) */}
                     <TouchableOpacity
                         style={[styles.statCard, { backgroundColor: theme.card }]}
                         onPress={() => handleShowDetails('points', 'all')}
                     >
                         <View style={[styles.iconCircle, { backgroundColor: theme.primary + '20' }]}>
-                            <Ionicons name="star" size={24} color={theme.primary} />
+                            <Ionicons name="trophy" size={24} color={theme.primary} />
                         </View>
                         <Text style={[styles.statValue, { color: theme.text }]}>
                             {stats?.summary.total_points_issued ?? 0}
@@ -233,42 +330,6 @@ export default function MerchantDashboard() {
                         <Text style={[styles.statLabel, { color: theme.icon }]}>Total Points Issued</Text>
                         <View style={styles.tapIndicator}>
                             <Text style={{ fontSize: 10, color: theme.primary }}>Tap for details</Text>
-                        </View>
-                    </TouchableOpacity>
-
-                    {/* Redemptions */}
-                    <TouchableOpacity
-                        style={[styles.statCard, { backgroundColor: theme.card }]}
-                        onPress={() => handleShowDetails('redemptions', 'all')}
-                    >
-                        <View style={[styles.iconCircle, { backgroundColor: '#FF9F0A20' }]}>
-                            <Ionicons name="gift" size={24} color="#FF9F0A" />
-                        </View>
-                        <Text style={[styles.statValue, { color: theme.text }]}>
-                            {stats?.summary.total_redemptions ?? 0}
-                        </Text>
-                        <Text style={[styles.statLabel, { color: theme.icon }]}>Rewards Redeemed</Text>
-                        <View style={styles.tapIndicator}>
-                            <Text style={{ fontSize: 10, color: '#FF9F0A' }}>Tap for details</Text>
-                        </View>
-                    </TouchableOpacity>
-
-                    {/* Today */}
-                    <TouchableOpacity
-                        style={[styles.statCard, { backgroundColor: theme.card, flexBasis: '100%' }]}
-                        onPress={() => handleShowDetails('points', 'today')}
-                    >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <View>
-                                <Text style={[styles.statLabel, { color: theme.icon, marginBottom: 4 }]}>Points Issued Today</Text>
-                                <Text style={[styles.statValue, { color: theme.text, fontSize: 32 }]}>
-                                    {stats?.summary.today_points_issued ?? 0}
-                                </Text>
-                                <Text style={{ fontSize: 11, color: theme.success, marginTop: 4 }}>Tap to view today's transactions</Text>
-                            </View>
-                            <View style={[styles.iconCircle, { backgroundColor: theme.success + '20', width: 48, height: 48 }]}>
-                                <Ionicons name="trending-up" size={24} color={theme.success} />
-                            </View>
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -395,6 +456,46 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
         paddingBottom: 100,
+    },
+    heroCard: {
+        padding: 20,
+        borderRadius: 20,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        elevation: 3,
+    },
+    heroRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    heroLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+        marginBottom: 6,
+    },
+    heroValue: {
+        fontSize: 36,
+        fontWeight: '800',
+        letterSpacing: -0.5,
+    },
+    heroSubline: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 6,
+    },
+    heroIconCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 12,
     },
     statsGrid: {
         flexDirection: 'row',

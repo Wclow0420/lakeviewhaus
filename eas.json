@@ -12,10 +12,14 @@
             },
             "ios": {
                 "simulator": true
+            },
+            "android": {
+                "buildType": "apk"
             }
         },
         "preview": {
             "distribution": "internal",
+            "autoIncrement": true,
             "env": {
                 "APP_ENV": "preview"
             },
@@ -24,6 +28,7 @@
             }
         },
         "production": {
+            "autoIncrement": true,
             "env": {
                 "APP_ENV": "production",
                 "EXPO_APPLE_TEAM_ID": "STUF6G52TN"

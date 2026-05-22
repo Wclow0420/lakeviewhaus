@@ -1,10 +1,11 @@
 import { ProductBadge } from '@/components/ui/ProductBadge';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import LottieView from 'lottie-react-native';
 
@@ -22,35 +23,58 @@ interface Product {
 interface MenuItemProps {
     item: Product;
     onPress?: (item: Product) => void;
-    isLast?: boolean;
+    onAddPress?: (item: Product) => void;
 }
 
-export const MenuItem = React.memo(({ item, onPress, isLast }: MenuItemProps) => {
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+export const MenuItem = React.memo(({ item, onPress, onAddPress }: MenuItemProps) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
     const isInactive = item.is_active === false;
 
+    const scale = useSharedValue(1);
+    const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+    const handlePressIn = () => {
+        if (!isInactive) scale.value = withSpring(0.97, { damping: 15 });
+    };
+    const handlePressOut = () => {
+        scale.value = withSpring(1, { damping: 15 });
+    };
+
+    const handlePress = () => {
+        if (isInactive) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            return;
+        }
+        Haptics.selectionAsync();
+        onPress?.(item);
+    };
+
+    const handleAddPress = (e: any) => {
+        e.stopPropagation();
+        if (isInactive) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        (onAddPress ?? onPress)?.(item);
+    };
+
     return (
-        <TouchableOpacity
+        <AnimatedTouchable
             style={[
-                styles.container,
-                isLast && { borderBottomWidth: 0 },
-                isInactive && { opacity: 0.5 }
+                styles.card,
+                { backgroundColor: theme.card },
+                isInactive && { opacity: 0.55 },
+                cardStyle,
             ]}
-            onPress={() => {
-                if (!isInactive) {
-                    Haptics.selectionAsync();
-                    onPress?.(item);
-                } else {
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                }
-            }}
+            activeOpacity={0.9}
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
             disabled={isInactive}
-            activeOpacity={isInactive ? 1 : 0.7}
         >
-            {/* Image Section */}
-            <View style={styles.imageContainer}>
-                {/* Fallback image or activity indicator could be good, but for now simple image */}
+            {/* Image */}
+            <View style={styles.imageWrapper}>
                 {item.image_url ? (
                     <Image
                         source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_URL}${item.image_url}` }}
@@ -58,21 +82,21 @@ export const MenuItem = React.memo(({ item, onPress, isLast }: MenuItemProps) =>
                         resizeMode="cover"
                     />
                 ) : (
-                    <View style={styles.placeholder}>
+                    <View style={[styles.placeholder, { backgroundColor: theme.border }]}>
                         <Ionicons name="cafe-outline" size={32} color={theme.icon} />
                     </View>
                 )}
 
-                {/* Grayed out overlay for inactive items */}
+                {/* Sold-out overlay */}
                 {isInactive && (
                     <View style={styles.inactiveOverlay}>
-                        <View style={[styles.unavailableBadge, { backgroundColor: '#000' }]}>
+                        <View style={styles.unavailableBadge}>
                             <Text style={styles.unavailableText}>Sold Out</Text>
                         </View>
                     </View>
                 )}
 
-                {/* Badges - Overlay */}
+                {/* Recommended / New badges */}
                 {!isInactive && item.is_recommended && (
                     <View style={styles.lottieBadge}>
                         <LottieView
@@ -83,58 +107,79 @@ export const MenuItem = React.memo(({ item, onPress, isLast }: MenuItemProps) =>
                         />
                     </View>
                 )}
-                {!isInactive && item.is_new && !item.is_recommended && <ProductBadge type="new" style={{ top: 4, left: 4 }} />}
+                {!isInactive && item.is_new && !item.is_recommended && (
+                    <ProductBadge type="new" style={{ top: 6, left: 6 }} />
+                )}
             </View>
 
-            {/* Content Section */}
+            {/* Content */}
             <View style={styles.content}>
-                <Text style={[styles.title, { color: isInactive ? theme.icon : theme.text }]} numberOfLines={2}>{item.name}</Text>
+                <Text style={[styles.title, { color: isInactive ? theme.icon : theme.text }]} numberOfLines={2}>
+                    {item.name}
+                </Text>
 
                 {item.description ? (
-                    <Text style={[styles.description, { color: theme.icon }]} numberOfLines={1}>
+                    <Text style={[styles.description, { color: theme.icon }]} numberOfLines={2}>
                         {item.description}
                     </Text>
                 ) : null}
 
-                <Text style={[styles.price, isInactive && { color: theme.icon }]}>RM {item.price.toFixed(2)}</Text>
+                <View style={styles.bottomRow}>
+                    <Text style={[styles.price, { color: isInactive ? theme.icon : theme.text }]}>
+                        RM {item.price.toFixed(2)}
+                    </Text>
+
+                    {!isInactive && (
+                        <TouchableOpacity
+                            style={[styles.addButton, { backgroundColor: theme.primary }]}
+                            onPress={handleAddPress}
+                            activeOpacity={0.8}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <Ionicons name="add" size={20} color={theme.secondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
-        </TouchableOpacity>
+        </AnimatedTouchable>
     );
 });
 
 const styles = StyleSheet.create({
-    container: {
+    card: {
         flexDirection: 'row',
+        borderRadius: Layout.radius.md,
         padding: 12,
-        borderBottomWidth: 0.5,
-        borderBottomColor: '#F0F0F0',
-        height: 110,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
     },
-    imageContainer: {
-        width: 86,
-        height: 86,
-        borderRadius: 8,
-        overflow: 'visible', // Allow Lottie to overflow if needed, or keep it contained
-        marginRight: 12,
-    },
-    lottieBadge: {
-        position: 'absolute',
-        top: -8,
-        right: -8,
-        zIndex: 10,
+    imageWrapper: {
+        width: 104,
+        height: 104,
+        borderRadius: Layout.radius.md,
+        overflow: 'hidden',
+        marginRight: 14,
+        position: 'relative',
     },
     image: {
         width: '100%',
         height: '100%',
-        borderRadius: 8,
     },
     placeholder: {
         width: '100%',
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 8,
-        backgroundColor: '#F0F0F0',
+    },
+    lottieBadge: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        zIndex: 10,
     },
     content: {
         flex: 1,
@@ -143,18 +188,36 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 15,
-        fontWeight: '600',
-        color: '#333',
+        fontFamily: Fonts.bold,
+        letterSpacing: -0.1,
     },
     description: {
         fontSize: 12,
+        fontFamily: Fonts.medium,
         marginTop: 4,
-        color: '#999',
+        lineHeight: 16,
+    },
+    bottomRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 8,
     },
     price: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#E53935',
+        fontSize: 15,
+        fontFamily: Fonts.bold,
+    },
+    addButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     inactiveOverlay: {
         position: 'absolute',
@@ -162,19 +225,20 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        borderRadius: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.55)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     unavailableBadge: {
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 4,
+        borderRadius: 6,
+        backgroundColor: '#000',
     },
     unavailableText: {
         color: '#fff',
         fontSize: 10,
-        fontWeight: 'bold',
-    }
+        fontFamily: Fonts.bold,
+        letterSpacing: 0.5,
+    },
 });

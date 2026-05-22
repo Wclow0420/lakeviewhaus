@@ -19,6 +19,7 @@ import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { API_URL, api } from '../../services/api';
+import { Fonts } from '@/constants/theme';
 
 interface Reward {
     id: string; // Updated to string (UUID)
@@ -187,7 +188,7 @@ export default function RewardDetailScreen() {
 
                     {reward.target_name && (
                         <Text style={[styles.targetText, { color: theme.primary }]}>
-                            Redeemable for: <Text style={{ fontWeight: '700' }}>{reward.target_name}</Text>
+                            Redeemable for: <Text style={{ fontFamily: Fonts.bold }}>{reward.target_name}</Text>
                         </Text>
                     )}
 
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         marginTop: 4,
         lineHeight: 30,
     },
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
     },
     badgeText: {
         fontSize: 10,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         color: '#FFF',
     },
     pointsBadge: {
@@ -367,7 +368,7 @@ const styles = StyleSheet.create({
     },
     pointsText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
 
     // Grid Info
@@ -388,18 +389,18 @@ const styles = StyleSheet.create({
     },
     infoLabel: {
         fontSize: 10,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         marginBottom: 2,
     },
     infoValue: {
         fontSize: 12,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         textTransform: 'capitalize',
     },
 
     sectionHeader: {
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         marginBottom: 10,
         marginTop: 8,
     },

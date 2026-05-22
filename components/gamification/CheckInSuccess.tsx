@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import LottieView from 'lottie-react-native';
+import { Fonts } from '@/constants/theme';
 
 interface CheckInSuccessProps {
     visible: boolean;
@@ -258,14 +259,14 @@ const styles = StyleSheet.create({
     containerFill: { flex: 1, width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
     centerContent: { justifyContent: 'center', alignItems: 'center' },
 
-    mysteryText: { color: '#FCD259', fontSize: 18, fontWeight: '700', marginTop: 16 },
+    mysteryText: { color: '#FCD259', fontSize: 18, fontFamily: Fonts.bold, marginTop: 16 },
 
-    title: { fontSize: 32, fontWeight: '800', color: '#FFF', marginBottom: 8, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 10 },
-    points: { fontSize: 24, fontWeight: '600', color: '#FCD259', marginBottom: 16 },
+    title: { fontSize: 32, fontFamily: Fonts.bold, color: '#FFF', marginBottom: 8, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 10 },
+    points: { fontSize: 24, fontFamily: Fonts.semibold, color: '#FCD259', marginBottom: 16 },
 
     normalContent: { alignItems: 'center' },
-    bigStreakNumber: { fontSize: 80, fontWeight: '900', color: '#FFF', includeFontPadding: false, lineHeight: 90 },
-    streakLabel: { fontSize: 24, fontWeight: '600', color: '#FF4500', marginTop: -10 },
-    pointsLabel: { fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginTop: 12 },
+    bigStreakNumber: { fontSize: 80, fontFamily: Fonts.bold, color: '#FFF', includeFontPadding: false, lineHeight: 90 },
+    streakLabel: { fontSize: 24, fontFamily: Fonts.semibold, color: '#FF4500', marginTop: -10 },
+    pointsLabel: { fontSize: 18, fontFamily: Fonts.medium, color: 'rgba(255,255,255,0.8)', marginTop: 12 },
     closeHint: { color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 20 },
 });

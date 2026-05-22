@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/Button';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 22,
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         marginTop: 16,
         marginBottom: 8,
         textAlign: 'center'

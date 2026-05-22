@@ -19,7 +19,7 @@ const IOS_ICON = "./assets/images/IOS-icon.png";
 const ANDROID_ICON = "./assets/images/Android-icon.png";
 
 // 4. Production Values
-const PROD_APP_NAME = "Lakeview Haus";
+const PROD_APP_NAME = "Lakeview";
 const PROD_BUNDLE_IDENTIFIER = "com.lakeviewhaus.biz";
 const PROD_PACKAGE_NAME = "com.lakeviewhaus.biz";
 const PROD_SCHEME = "lakeviewhaus";
@@ -84,7 +84,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // === iOS ===
         ios: {
             appleTeamId: "STUF6G52TN",
-            supportsTablet: true,
+            supportsTablet: false,
             bundleIdentifier: bundleIdentifier,
 
             icon: IOS_ICON, // ✅ Explicit iOS Icon
@@ -107,7 +107,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             edgeToEdgeEnabled: true,
             predictiveBackGestureEnabled: false,
             package: packageName,
-            versionCode: 1,
+            versionCode: undefined, // managed by EAS autoIncrement
         },
 
         // === Web ===
@@ -142,6 +142,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
                 "expo-camera",
                 {
                     "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan QR codes."
+                }
+            ],
+            [
+                "expo-audio",
+                {
+                    "microphonePermission": false
                 }
             ],
             "./withPermissionDescriptions"

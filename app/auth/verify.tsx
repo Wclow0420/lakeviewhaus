@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
@@ -169,7 +169,7 @@ export default function VerifyScreen() {
                     <TouchableOpacity onPress={handleResend} disabled={countdown > 0}>
                         <Text style={{
                             color: countdown > 0 ? theme.icon : theme.primary,
-                            fontWeight: '600',
+                            fontFamily: Fonts.semibold,
                             fontSize: 14,
                             textDecorationLine: countdown > 0 ? 'none' : 'underline'
                         }}>
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         marginBottom: Layout.spacing.xs,
     },
     subtitle: {

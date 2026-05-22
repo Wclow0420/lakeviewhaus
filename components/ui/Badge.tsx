@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     },
     text: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontFamily: Fonts.bold,
         textAlign: 'center',
     },
 });

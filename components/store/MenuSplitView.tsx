@@ -1,15 +1,18 @@
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, API_URL } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, RefreshControl, SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { MenuItem } from './MenuItem';
 
 interface MenuSplitViewProps {
     branchId: number;
     initialProductId?: number;
     searchQuery: string;
+    onProductPress?: (product: Product) => void;
 }
 
 interface Category {
@@ -30,7 +33,88 @@ interface Product {
     is_active?: boolean;
 }
 
-export function MenuSplitView({ branchId, initialProductId, searchQuery }: MenuSplitViewProps) {
+// -------- Sidebar pill --------
+interface SidebarPillProps {
+    title: string;
+    imageUrl?: string;
+    selected: boolean;
+    onPress: () => void;
+}
+
+const SidebarPill = React.memo(({ title, imageUrl, selected, onPress }: SidebarPillProps) => {
+    const colorScheme = useColorScheme() ?? 'light';
+    const theme = Colors[colorScheme as keyof typeof Colors];
+    const scale = useSharedValue(selected ? 1.02 : 1);
+
+    useEffect(() => {
+        scale.value = withSpring(selected ? 1.02 : 1, { damping: 15 });
+    }, [selected]);
+
+    const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+    return (
+        <Animated.View style={animStyle}>
+            <TouchableOpacity
+                onPress={onPress}
+                activeOpacity={0.8}
+                style={[
+                    styles.sidebarPill,
+                    selected && {
+                        backgroundColor: theme.primary,
+                        shadowOpacity: 0.08,
+                    },
+                ]}
+            >
+                <View style={[styles.sidebarImageBox, { backgroundColor: selected ? 'rgba(255,255,255,0.6)' : theme.card }]}>
+                    {imageUrl ? (
+                        <Image
+                            source={{ uri: imageUrl.startsWith('http') ? imageUrl : `${API_URL}${imageUrl}` }}
+                            style={styles.sidebarImage}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <Ionicons name="restaurant-outline" size={18} color={selected ? theme.secondary : theme.icon} />
+                    )}
+                </View>
+                <Text
+                    style={[
+                        styles.sidebarLabel,
+                        { color: selected ? theme.secondary : theme.text, fontFamily: selected ? Fonts.bold : Fonts.medium },
+                    ]}
+                    numberOfLines={2}
+                >
+                    {title}
+                </Text>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+});
+
+// -------- Skeleton card --------
+const SkeletonCard = () => {
+    const colorScheme = useColorScheme() ?? 'light';
+    const theme = Colors[colorScheme as keyof typeof Colors];
+    const opacity = useSharedValue(0.4);
+
+    useEffect(() => {
+        opacity.value = withRepeat(withTiming(0.8, { duration: 900 }), -1, true);
+    }, []);
+
+    const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+    return (
+        <Animated.View style={[styles.skeletonCard, { backgroundColor: theme.card }, style]}>
+            <View style={[styles.skeletonImage, { backgroundColor: theme.border }]} />
+            <View style={styles.skeletonBody}>
+                <View style={[styles.skeletonLine, { backgroundColor: theme.border, width: '80%' }]} />
+                <View style={[styles.skeletonLine, { backgroundColor: theme.border, width: '60%', marginTop: 6 }]} />
+                <View style={[styles.skeletonLine, { backgroundColor: theme.border, width: '30%', marginTop: 12 }]} />
+            </View>
+        </Animated.View>
+    );
+};
+
+export function MenuSplitView({ branchId, initialProductId, searchQuery, onProductPress }: MenuSplitViewProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme as keyof typeof Colors];
 
@@ -38,54 +122,41 @@ export function MenuSplitView({ branchId, initialProductId, searchQuery }: MenuS
     const [categories, setCategories] = useState<Category[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
 
     const sectionListRef = useRef<SectionList>(null);
     const categoryListRef = useRef<FlatList>(null);
     const isManualScroll = useRef(false);
-    const sectionsRef = useRef<typeof sections>([]);
+    const sectionsRef = useRef<any[]>([]);
     const selectedCategoryIndexRef = useRef(0);
 
-    const [refreshing, setRefreshing] = useState(false);
-
-    // Fixed heights for calculation
-    const SECTION_HEADER_HEIGHT = 56; // paddingTop(12) + paddingVertical(12) + text height + paddingBottom(0) + inner padding
-    const ITEM_HEIGHT = 110; // from MenuItem styles
-    const ITEM_MARGIN_BOTTOM = 12; // marginBottom for last item in section
+    // Card height = imageHeight(104) + padding(24) + marginBottom(12)
+    const SECTION_HEADER_HEIGHT = 56;
+    const ITEM_HEIGHT = 140;
 
     useEffect(() => {
         loadData();
     }, [branchId]);
 
-    // Auto Scroll to Product if requested
     useEffect(() => {
         if (!loading && initialProductId && products.length > 0 && categories.length > 0) {
             const product = products.find(p => p.id === initialProductId);
             if (product) {
-                // Find category index (of rendered sections, which filters out empty categories)
                 const visibleSections = categories.map(cat => ({
                     id: cat.id,
-                    data: products.filter(p => p.category_id === cat.id)
+                    data: products.filter(p => p.category_id === cat.id),
                 })).filter(s => s.data.length > 0);
-
                 const sectionIndex = visibleSections.findIndex(s => s.id === product.category_id);
-
                 if (sectionIndex !== -1) {
-                    // Find item index within section
                     const itemIndex = visibleSections[sectionIndex].data.findIndex(p => p.id === product.id);
-
-                    // Slight delay to ensure layout
                     setTimeout(() => {
-                        // Select Category First (Sidebar)
                         setSelectedCategoryIndex(sectionIndex);
                         categoryListRef.current?.scrollToIndex({ index: sectionIndex, animated: true, viewPosition: 0.5 });
-
-                        // Scroll Main Content to Exact Item
                         sectionListRef.current?.scrollToLocation({
                             sectionIndex,
                             itemIndex: itemIndex !== -1 ? itemIndex : 0,
                             animated: true,
-                            viewPosition: 0, // Top of item at top of view
-                            viewOffset: 0
+                            viewPosition: 0,
                         });
                     }, 500);
                 }
@@ -94,13 +165,11 @@ export function MenuSplitView({ branchId, initialProductId, searchQuery }: MenuS
     }, [loading, initialProductId, products, categories]);
 
     const loadData = async () => {
-        // Only show full loading on initial load or id change, not refresh
         if (!refreshing) setLoading(true);
         try {
-            // Parallel fetch
             const [cats, prods] = await Promise.all([
                 api.customer.getCategories(branchId),
-                api.customer.getProducts(branchId)
+                api.customer.getProducts(branchId),
             ]);
             setCategories(cats);
             setProducts(prods);
@@ -117,103 +186,95 @@ export function MenuSplitView({ branchId, initialProductId, searchQuery }: MenuS
         loadData();
     };
 
-    // Group products by category
     const sections = categories.map(cat => ({
         title: cat.name,
         image_url: cat.image_url,
         id: cat.id,
-        data: products.filter(p => p.category_id === cat.id)
-    })).filter(section => section.data.length > 0); // Only show categories with products
+        data: products.filter(p => p.category_id === cat.id),
+    })).filter(s => s.data.length > 0);
 
-    // Keep refs in sync so the stable onViewableItemsChanged callback sees current values
     sectionsRef.current = sections;
     selectedCategoryIndexRef.current = selectedCategoryIndex;
 
     const filteredProducts = searchQuery.trim()
         ? products.filter(p => {
             const q = searchQuery.toLowerCase();
-            return p.name.toLowerCase().includes(q) ||
-                (p.description && p.description.toLowerCase().includes(q));
+            return p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q));
         })
         : [];
     const isSearching = searchQuery.trim().length > 0;
 
     const calculateSectionOffset = (targetIndex: number): number => {
         let offset = 0;
-
-        // Sum up heights of all sections before the target
         for (let i = 0; i < targetIndex; i++) {
-            offset += SECTION_HEADER_HEIGHT; // Section header
-            offset += sections[i].data.length * ITEM_HEIGHT; // All items in section
-            offset += ITEM_MARGIN_BOTTOM; // Margin after last item
+            offset += SECTION_HEADER_HEIGHT;
+            offset += sections[i].data.length * ITEM_HEIGHT;
         }
-
         return offset;
     };
 
     const handleCategoryPress = (index: number) => {
         if (index === selectedCategoryIndex) return;
-
+        Haptics.selectionAsync();
         isManualScroll.current = true;
         setSelectedCategoryIndex(index);
-
-        // Scroll to category list first to show selection
         categoryListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-
-        // Calculate the scroll offset for this section
         const offset = calculateSectionOffset(index);
-
-        // Get the scroll responder and scroll to the calculated position
         const scrollResponder = sectionListRef.current?.getScrollResponder();
         if (scrollResponder && 'scrollTo' in scrollResponder) {
-            (scrollResponder as any).scrollTo({
-                y: offset,
-                animated: true
-            });
-
-            // Re-enable auto-sync after scroll animation (approx 800ms)
-            setTimeout(() => {
-                isManualScroll.current = false;
-            }, 800);
+            (scrollResponder as any).scrollTo({ y: offset, animated: true });
+            setTimeout(() => { isManualScroll.current = false; }, 800);
         }
     };
 
     const handleViewableItemsChanged = useRef(({ viewableItems }: any) => {
         if (isManualScroll.current) return;
-
         if (viewableItems.length > 0) {
-            // Find the most visible item's section
             const visibleItem = viewableItems[0];
-
             if (visibleItem.section) {
                 const sectionTitle = visibleItem.section.title;
                 const index = sectionsRef.current.findIndex(s => s.title === sectionTitle);
-
                 if (index !== -1 && index !== selectedCategoryIndexRef.current) {
                     setSelectedCategoryIndex(index);
-                    categoryListRef.current?.scrollToIndex({
-                        index: index,
-                        animated: true,
-                        viewPosition: 0.5
-                    });
+                    categoryListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
                 }
             }
         }
     }).current;
 
     const viewabilityConfig = useRef({
-        itemVisiblePercentThreshold: 10, // More sensitive
+        itemVisiblePercentThreshold: 10,
         waitForInteraction: false,
     }).current;
 
+    // Loading skeleton — shows in both panes
     if (loading) {
-        return <View style={styles.loading}><ActivityIndicator color={theme.primary} /></View>;
+        return (
+            <View style={styles.container}>
+                <View style={styles.contentRow}>
+                    <View style={[styles.sidebar, { backgroundColor: theme.background }]}>
+                        {[0, 1, 2, 3].map(i => (
+                            <View key={i} style={[styles.sidebarSkeleton, { backgroundColor: theme.card }]} />
+                        ))}
+                    </View>
+                    <View style={[styles.content, { backgroundColor: theme.background }]}>
+                        <View style={styles.contentInner}>
+                            <SkeletonCard />
+                            <SkeletonCard />
+                            <SkeletonCard />
+                        </View>
+                    </View>
+                </View>
+            </View>
+        );
     }
 
     if (sections.length === 0) {
         return (
-            <View style={styles.center}>
-                <Text style={{ color: theme.icon }}>No menu items available.</Text>
+            <View style={styles.emptyScreen}>
+                <Ionicons name="restaurant-outline" size={56} color={theme.icon} />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>No menu available</Text>
+                <Text style={[styles.emptySub, { color: theme.icon }]}>This branch hasn't added any items yet.</Text>
             </View>
         );
     }
@@ -222,123 +283,76 @@ export function MenuSplitView({ branchId, initialProductId, searchQuery }: MenuS
         <View style={styles.container}>
             <View style={styles.contentRow}>
                 {isSearching ? (
-                    /* Full-width search results */
                     filteredProducts.length > 0 ? (
                         <FlatList
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, backgroundColor: theme.background }}
                             data={filteredProducts}
                             keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item, index }) => {
-                                const isLast = index === filteredProducts.length - 1;
-                                return (
-                                    <View style={[styles.categoryContainer, styles.searchResultItem, isLast && { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, marginBottom: 12 }]}>
-                                        <MenuItem
-                                            item={item}
-                                            onPress={() => console.log('Press Item', item)}
-                                            isLast={isLast}
-                                        />
-                                    </View>
-                                );
-                            }}
+                            renderItem={({ item }) => (
+                                <MenuItem item={item} onPress={onProductPress} />
+                            )}
+                            contentContainerStyle={[styles.contentInner, { paddingBottom: 300 }]}
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={{ paddingBottom: 300 }}
                         />
                     ) : (
                         <View style={styles.emptySearch}>
-                            <Ionicons name="search-outline" size={40} color="#CCC" />
-                            <Text style={styles.emptySearchText}>No results for "{searchQuery}"</Text>
+                            <Ionicons name="search-outline" size={48} color={theme.icon} />
+                            <Text style={[styles.emptySearchText, { color: theme.text }]}>
+                                No results for "{searchQuery}"
+                            </Text>
+                            <Text style={[styles.emptySub, { color: theme.icon }]}>
+                                Try a different keyword.
+                            </Text>
                         </View>
                     )
                 ) : (
-                    /* Normal sidebar + section list layout */
                     <>
                         {/* Sidebar */}
-                        <View style={[styles.sidebar, { backgroundColor: '#F5F5F5' }]}>
+                        <View style={[styles.sidebar, { backgroundColor: theme.background }]}>
                             <FlatList
                                 ref={categoryListRef}
                                 data={sections}
                                 keyExtractor={(item) => item.id.toString()}
                                 showsVerticalScrollIndicator={false}
-                                renderItem={({ item, index }) => {
-                                    const isSelected = selectedCategoryIndex === index;
-
-                                    return (
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.sidebarItem,
-                                                isSelected && { backgroundColor: '#FFFFFF' }
-                                            ]}
-                                            onPress={() => handleCategoryPress(index)}
-                                        >
-                                            {/* Category Image Circle */}
-                                            <View style={[
-                                                styles.categoryImageContainer,
-                                                isSelected && { borderColor: theme.primary, borderWidth: 2 },
-                                                !item.image_url && { justifyContent: 'center', alignItems: 'center' }
-                                            ]}>
-                                                {item.image_url ? (
-                                                    <Image
-                                                        source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_URL}${item.image_url}` }}
-                                                        style={styles.categoryImage}
-                                                        resizeMode="cover"
-                                                    />
-                                                ) : (
-                                                    <Ionicons name="restaurant" size={24} color={isSelected ? theme.primary : theme.icon} />
-                                                )}
-                                            </View>
-
-                                            {/* Category Name */}
-                                            <Text style={[
-                                                styles.sidebarText,
-                                                { color: isSelected ? theme.text : theme.icon },
-                                                isSelected && { fontWeight: '700' }
-                                            ]} numberOfLines={2}>
-                                                {item.title}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                }}
+                                contentContainerStyle={styles.sidebarList}
+                                renderItem={({ item, index }) => (
+                                    <SidebarPill
+                                        title={item.title}
+                                        imageUrl={item.image_url}
+                                        selected={selectedCategoryIndex === index}
+                                        onPress={() => handleCategoryPress(index)}
+                                    />
+                                )}
                             />
                         </View>
 
                         {/* Main Content */}
-                        <View style={[styles.content, { backgroundColor: '#F8F8F8' }]}>
+                        <View style={[styles.content, { backgroundColor: theme.background }]}>
                             <SectionList
                                 ref={sectionListRef}
                                 sections={sections}
                                 keyExtractor={(item) => item.id.toString()}
                                 stickySectionHeadersEnabled={true}
-                                renderSectionHeader={({ section: { title } }: any) => (
-                                    <View style={[styles.sectionHeader, { backgroundColor: '#F8F8F8' }]}>
-                                        <View style={styles.sectionHeaderInner}>
-                                            <Text style={[styles.sectionHeaderText, { color: theme.text }]}>{title}</Text>
-                                        </View>
+                                renderSectionHeader={({ section }: any) => (
+                                    <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                                        <Text style={[styles.sectionHeaderText, { color: theme.text }]}>
+                                            {section.title}
+                                        </Text>
+                                        <Text style={[styles.sectionHeaderCount, { color: theme.icon }]}>
+                                            {section.data.length} item{section.data.length !== 1 ? 's' : ''}
+                                        </Text>
                                     </View>
                                 )}
-                                renderItem={({ item, section }) => {
-                                    // Check if this is the last item in the section
-                                    const isLastItem = section.data[section.data.length - 1].id === item.id;
-
-                                    return (
-                                        <View style={[
-                                            styles.categoryContainer,
-                                            isLastItem && { borderBottomLeftRadius: 12, borderBottomRightRadius: 12, marginBottom: 12 }
-                                        ]}>
-                                            <MenuItem
-                                                item={item}
-                                                onPress={() => console.log('Press Item', item)}
-                                                isLast={isLastItem}
-                                            />
-                                        </View>
-                                    );
-                                }}
+                                renderItem={({ item }) => (
+                                    <MenuItem item={item} onPress={onProductPress} />
+                                )}
                                 onViewableItemsChanged={handleViewableItemsChanged}
                                 viewabilityConfig={viewabilityConfig}
                                 refreshControl={
                                     <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.primary]} tintColor={theme.primary} />
                                 }
                                 showsVerticalScrollIndicator={false}
-                                contentContainerStyle={{ paddingBottom: 300 }}
+                                contentContainerStyle={[styles.contentInner, { paddingBottom: 300 }]}
                                 onScrollBeginDrag={() => { isManualScroll.current = false; }}
                                 onMomentumScrollBegin={() => { isManualScroll.current = false; }}
                             />
@@ -354,80 +368,133 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    loading: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    sidebar: {
-        width: '25%',
-    },
-    sidebarItem: {
-        paddingVertical: 12,
-        paddingHorizontal: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    categoryImageContainer: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        overflow: 'hidden',
-        marginBottom: 6,
-        backgroundColor: '#FFFFFF',
-    },
-    categoryImage: {
-        width: '100%',
-        height: '100%',
-    },
-    sidebarText: {
-        fontSize: 11,
-        textAlign: 'center',
-        lineHeight: 14,
-    },
-    content: {
-        width: '75%',
-    },
-    sectionHeader: {
-        paddingHorizontal: 12,
-        paddingTop: 12,
-        paddingBottom: 0,
-    },
-    sectionHeaderInner: {
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-    },
-    sectionHeaderText: {
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    categoryContainer: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 12,
-    },
     contentRow: {
         flex: 1,
         flexDirection: 'row',
     },
-    searchResultItem: {
-        marginHorizontal: 12,
+
+    // Sidebar
+    sidebar: {
+        width: '22%',
+    },
+    sidebarList: {
+        paddingVertical: 8,
+        paddingHorizontal: 6,
+        gap: 6,
+    },
+    sidebarPill: {
+        paddingVertical: 10,
+        paddingHorizontal: 6,
+        alignItems: 'center',
+        borderRadius: Layout.radius.md,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0,
+        shadowRadius: 6,
+        elevation: 0,
+    },
+    sidebarImageBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    sidebarImage: {
+        width: '100%',
+        height: '100%',
+    },
+    sidebarLabel: {
+        fontSize: 11.5,
+        textAlign: 'center',
+        lineHeight: 14,
+        letterSpacing: -0.1,
+    },
+    sidebarSkeleton: {
+        height: 78,
+        marginVertical: 4,
+        marginHorizontal: 6,
+        borderRadius: Layout.radius.md,
+        opacity: 0.5,
+    },
+
+    // Content
+    content: {
+        flex: 1,
+    },
+    contentInner: {
+        paddingHorizontal: 14,
+        paddingTop: 8,
+    },
+    sectionHeader: {
+        paddingTop: 16,
+        paddingBottom: 10,
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+    },
+    sectionHeaderText: {
+        fontSize: 18,
+        fontFamily: Fonts.bold,
+        letterSpacing: -0.3,
+    },
+    sectionHeaderCount: {
+        fontSize: 12,
+        fontFamily: Fonts.medium,
+    },
+
+    // Empty states
+    emptyScreen: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+        gap: 10,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontFamily: Fonts.bold,
+        marginTop: 12,
+    },
+    emptySub: {
+        fontSize: 13,
+        fontFamily: Fonts.regular,
+        textAlign: 'center',
     },
     emptySearch: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
+        paddingHorizontal: 30,
     },
     emptySearchText: {
-        fontSize: 14,
-        color: '#999',
+        fontSize: 15,
+        fontFamily: Fonts.bold,
+        marginTop: 10,
+    },
+
+    // Skeleton card
+    skeletonCard: {
+        flexDirection: 'row',
+        borderRadius: Layout.radius.md,
+        padding: 12,
+        marginBottom: 12,
+    },
+    skeletonImage: {
+        width: 104,
+        height: 104,
+        borderRadius: Layout.radius.md,
+        marginRight: 14,
+    },
+    skeletonBody: {
+        flex: 1,
+        paddingVertical: 4,
+    },
+    skeletonLine: {
+        height: 12,
+        borderRadius: 6,
     },
 });

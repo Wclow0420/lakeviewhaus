@@ -4,6 +4,8 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail, Message
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 
@@ -16,6 +18,27 @@ db = SQLAlchemy()
 migrate = Migrate()
 mail = None
 limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
+scheduler = None
+
+
+def _cancel_expired_orders(app):
+    """Cancel any pending orders past their payment window. Runs every minute via scheduler."""
+    from app.models.order import Order
+    from app.routes.order import _cancel_order, _emit_order_update
+    with app.app_context():
+        cutoff = datetime.utcnow() - timedelta(minutes=Order.PAYMENT_TIMEOUT_MINUTES)
+        stale = Order.query.filter(
+            Order.payment_status == 'pending',
+            Order.status != 'cancelled',
+            Order.created_at < cutoff,
+        ).all()
+        for o in stale:
+            _cancel_order(o)
+        if stale:
+            db.session.commit()
+            for o in stale:
+                _emit_order_update(o)
+            print(f'[scheduler] cancelled {len(stale)} expired orders (vouchers refunded, sockets notified)')
 
 def create_app():
     global mail
@@ -62,6 +85,8 @@ def create_app():
     from app.models.lucky_draw_prize import LuckyDrawPrize
     from app.models.lucky_draw_history import LuckyDrawHistory
     from app.models.config import AppConfig
+    from app.models.payment import Payment
+    from app.models.order import Order
 
     # Register Blueprints
     from app.routes import auth, gamification, merchant, menu, upload, rewards
@@ -97,9 +122,24 @@ def create_app():
     from app.routes import config
     app.register_blueprint(config.config_bp, url_prefix='/config')
 
+    from app.routes import payment
+    app.register_blueprint(payment.bp)
+
+    from app.routes import order
+    app.register_blueprint(order.bp)
+
 
     @app.route('/')
     def hello():
         return "Lakeview Haus API is running!"
+
+    # Start background scheduler for auto-cancelling expired orders.
+    # Guard against double-start under Flask's dev reloader.
+    global scheduler
+    should_start = os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug
+    if should_start and scheduler is None:
+        scheduler = BackgroundScheduler(daemon=True)
+        scheduler.add_job(lambda: _cancel_expired_orders(app), 'interval', minutes=1)
+        scheduler.start()
 
     return app

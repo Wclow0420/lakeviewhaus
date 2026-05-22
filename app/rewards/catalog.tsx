@@ -1,6 +1,6 @@
 import { RewardBadge } from '@/components/ui/RewardBadge';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
     },
     filterContainer: {
         paddingVertical: 12,
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     },
     filterChipText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     center: {
         flex: 1,
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     },
     sectionHeader: {
         fontSize: 18,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         marginBottom: 12,
     },
     grid: {
@@ -517,12 +517,12 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 14,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         marginBottom: 4,
     },
     targetName: {
         fontSize: 11,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         marginBottom: 8,
     },
     metaRow: {
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     },
     badgeText: {
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     lockRow: {
         flexDirection: 'row',
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     },
     luckyDrawTitle: {
         fontSize: 18,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#FFF',
         marginBottom: 6,
     },
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
     },
     costTagText: {
         color: '#FFF',
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         fontSize: 12,
     },
     spinsText: {

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         marginBottom: Layout.spacing.xs,
     },
     subtitle: {
@@ -241,11 +241,11 @@ const styles = StyleSheet.create({
     },
     reqText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
     label: {
         marginBottom: 8,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
     },
     phoneRow: {
         flexDirection: 'row',
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.02)',
     },
     countryText: {
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
     },
     pickerContainer: {
         position: 'absolute',

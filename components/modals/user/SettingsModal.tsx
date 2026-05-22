@@ -1,7 +1,7 @@
 import { BaseModal } from '@/components/ui/BaseModal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { API_URL, api } from '@/services/api';
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     },
     avatarText: {
         fontSize: 40,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#000',
     },
     editBadge: {

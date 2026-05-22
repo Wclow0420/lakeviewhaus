@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
@@ -161,7 +161,7 @@ export default function LoginScreen() {
                 />
 
                 <TouchableOpacity style={styles.forgotPassword}>
-                    <Text style={{ color: theme.primary, fontWeight: '600' }}>Forgot Password?</Text>
+                    <Text style={{ color: theme.primary, fontFamily: Fonts.semibold }}>Forgot Password?</Text>
                 </TouchableOpacity>
 
                 <Button
@@ -186,7 +186,7 @@ export default function LoginScreen() {
                 <View style={styles.footer}>
                     <Text style={{ color: theme.icon }}>Don't have an account? </Text>
                     <TouchableOpacity onPress={() => router.push('/auth/register')}>
-                        <Text style={{ color: theme.primary, fontWeight: '700' }}>Sign Up</Text>
+                        <Text style={{ color: theme.primary, fontFamily: Fonts.bold }}>Sign Up</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         marginBottom: Layout.spacing.xs,
     },
     subtitle: {

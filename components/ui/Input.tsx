@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextInput, View, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors, Fonts, Layout } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface InputProps extends TextInputProps {
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     label: {
         marginBottom: Layout.spacing.xs,
         fontSize: 14,
-        fontWeight: '500',
+        fontFamily: Fonts.medium,
         marginLeft: 4,
     },
     input: {

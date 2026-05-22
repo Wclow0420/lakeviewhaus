@@ -16,6 +16,18 @@ const withPermissionDescriptions = (config) => {
       androidManifest.manifest['uses-feature'] = [];
     }
 
+    // Restrict to phones only (no tablets)
+    androidManifest.manifest['supports-screens'] = [
+      {
+        $: {
+          'android:smallScreens': 'true',
+          'android:normalScreens': 'true',
+          'android:largeScreens': 'false',
+          'android:xlargeScreens': 'false',
+        }
+      }
+    ];
+
     // Device features — restrict to phones, portrait only
     const deviceFeatures = [
       {

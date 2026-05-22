@@ -1,6 +1,6 @@
 
 import { CheckInSuccess } from '@/components/gamification/CheckInSuccess';
-import { Colors, Layout, RANKS } from '@/constants/theme';
+import { Colors, Fonts, Layout, RANKS } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, API_URL } from '@/services/api';
@@ -185,7 +185,7 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, onShow
             )}
           </TouchableOpacity>
           {!canCheckIn && (
-            <Text style={{ fontSize: 10, marginTop: 4, color: currentStyle.label, fontWeight: '500' }}>{timeLeft}</Text>
+            <Text style={{ fontSize: 10, marginTop: 4, color: currentStyle.label, fontFamily: Fonts.medium }}>{timeLeft}</Text>
           )}
         </View>
       </View>
@@ -202,14 +202,14 @@ const FloatingMemberCard = ({ user, theme, onCheckIn, streak, canCheckIn, onShow
           <View style={[styles.progressBarFill, { width: percent, backgroundColor: currentStyle.progressFill }]} />
         </View>
         <View style={styles.progressLabels}>
-          <Text style={[styles.progressText, { color: currentStyle.label }]}>Current: {points}</Text>
+          <Text style={[styles.progressText, { color: currentStyle.label }]}>Current: {points.toFixed(2)}</Text>
           <Text style={[styles.progressText, { color: currentStyle.label }]}>
             {nextRank === 'Max' ? 'Max Rank' : `Goal: ${max} `}
           </Text>
         </View>
         {nextRank !== 'Max' && (
           <Text style={[styles.nextRankHint, { color: currentStyle.label }]}>
-            Need {max - points} more to {nextRank}
+            Need {(max - points).toFixed(2)} more to {nextRank}
           </Text>
         )}
       </View>
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   rankBadge: {
     flexDirection: 'row',
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   },
   rankText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#856404',
     textTransform: 'uppercase',
   },
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   },
   miniCheckInText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: Fonts.semibold,
     color: '#333',
   },
   streakBadge: {
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
   streakBadgeText: {
     color: '#FFF',
     fontSize: 10,
-    fontWeight: '800',
+    fontFamily: Fonts.bold,
   },
   pointsRow: {
     flexDirection: 'row',
@@ -685,13 +685,13 @@ const styles = StyleSheet.create({
   },
   bigPoints: {
     fontSize: 42,
-    fontWeight: '900',
+    fontFamily: Fonts.bold,
     letterSpacing: -1,
   },
   pointsLabel: {
     fontSize: 14,
     color: '#666',
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
     marginBottom: 6,
   },
   progressContainer: {
@@ -714,12 +714,12 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     color: '#999',
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
   },
   nextRankHint: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
     marginTop: -4,
   },
   bannerRow: {
@@ -739,12 +739,12 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   bannerSubtitle: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
   },
   bannerIcon: {
     width: 50,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   productGrid: {
     flexDirection: 'row',
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
   discountText: {
     color: '#FFF',
     fontSize: 10,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   productInfo: {
     paddingHorizontal: 12,
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.semibold,
   },
   priceRow: {
     flexDirection: 'row',
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
   },
   currentPrice: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: '#D32F2F',
   },
   originalPrice: {
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
   priceTagText: {
     color: '#D32F2F',
     fontSize: 10,
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
   },
 
   // Branch Section Styles
@@ -863,6 +863,6 @@ const styles = StyleSheet.create({
   branchNameText: {
     fontSize: 10,
     textAlign: 'center',
-    fontWeight: '600',
+    fontFamily: Fonts.semibold,
   }
 });

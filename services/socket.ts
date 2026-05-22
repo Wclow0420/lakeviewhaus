@@ -1,29 +1,63 @@
 import { io, Socket } from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
+import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native';
 import { API_URL } from './api';
+
+const WATCHDOG_INTERVAL_MS = 30000; // check liveness every 30s
 
 class SocketService {
     private socket: Socket | null = null;
-
+    private lastToken: string | null = null;
     /**
-     * Initialize the socket connection
-     * Call this after login or when the app starts if already logged in
+     * Shared in-flight init promise. Concurrent callers (AuthContext +
+     * NotificationContext both firing on `user` change, plus React strict-mode
+     * double-mounts) all await the SAME promise — so exactly one socket is
+     * created even if `init()` is called 5× in quick succession. Without this,
+     * the race window between `await SecureStore.getItemAsync()` and
+     * `this.socket = io(...)` lets two callers both observe `this.socket ===
+     * null` and both call `io()`, leaving two live sockets connected to the
+     * server.
      */
-    init = async () => {
-        if (this.socket && this.socket.connected) return;
+    private pendingInit: Promise<void> | null = null;
+    private watchdogTimer: ReturnType<typeof setInterval> | null = null;
+    private appStateSubscription: NativeEventSubscription | null = null;
 
-        console.log('[Socket] Initializing...', API_URL);
+    init = (): Promise<void> => {
+        if (this.pendingInit) return this.pendingInit;
+        this.pendingInit = this._runInit().finally(() => {
+            this.pendingInit = null;
+        });
+        return this.pendingInit;
+    }
+
+    private _runInit = async (): Promise<void> => {
         const token = await SecureStore.getItemAsync('access_token');
 
-        // Socket.IO client usually needs the bare URI (e.g. http://localhost:5002)
-        // If API_URL ends with /api, strip it. But based on our config, it's root.
-        const baseUrl = API_URL;
+        // Same token AND socket is still live → existing socket is fine.
+        if (this.socket && this.socket.connected && this.lastToken === token) {
+            return;
+        }
 
-        this.socket = io(baseUrl, {
+        // Token changed (or socket dead/half-dead) → tear down before reconnecting.
+        if (this.socket) {
+            console.log('[Socket] Tearing down existing connection before reconnect');
+            this.socket.removeAllListeners();
+            this.socket.disconnect();
+            this.socket = null;
+        }
+
+        console.log('[Socket] Initializing...', API_URL);
+        this.lastToken = token;
+
+        this.socket = io(API_URL, {
             query: { token: token || '' },
             transports: ['websocket'],
             autoConnect: true,
             reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 10000,
         });
 
         this.socket.on('connect', () => {
@@ -34,19 +68,97 @@ class SocketService {
             console.warn('[Socket] Connection Error:', err.message);
         });
 
-        this.socket.on('disconnect', () => {
-            console.log('[Socket] Disconnected');
+        this.socket.on('disconnect', (reason: string) => {
+            // Reasons worth investigating:
+            //   'io server disconnect' → server kicked us, we must reconnect manually
+            //   'ping timeout' → underlying socket died silently, server stopped hearing us
+            //   'transport close' → network dropped (mobile network switch, wifi off)
+            console.log('[Socket] Disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                // socket.io won't auto-reconnect after a server-initiated kick; force it.
+                this.socket?.connect();
+            }
+        });
+
+        this.startWatchdog();
+        this.subscribeAppState();
+    }
+
+    /**
+     * Periodic liveness check. If the socket has been dropped silently
+     * (typical on mobile / SUNMI Android after the device wakes from doze
+     * or after a long uptime where the TCP connection dies without an
+     * RST), force a full reconnect.
+     *
+     * socket.io has its own heartbeat (pingInterval/pingTimeout) but on
+     * Android Doze the JS timer may be suspended, missing the ping
+     * window and leaving the client with a stale `socket.connected ===
+     * true` that's not actually receiving server messages. This watchdog
+     * is the safety net that ensures the merchant/customer reconnects
+     * within ~30s of the device waking up.
+     */
+    private startWatchdog = () => {
+        if (this.watchdogTimer) return;
+        this.watchdogTimer = setInterval(() => {
+            if (this.socket && !this.socket.connected) {
+                console.log('[Socket] Watchdog: socket disconnected, forcing reconnect');
+                this.forceReconnect();
+            }
+        }, WATCHDOG_INTERVAL_MS);
+    }
+
+    private stopWatchdog = () => {
+        if (this.watchdogTimer) {
+            clearInterval(this.watchdogTimer);
+            this.watchdogTimer = null;
+        }
+    }
+
+    /**
+     * On AppState 'active' (app came back to foreground), do an immediate
+     * health check rather than waiting for the 30s watchdog tick. This is
+     * the common path for regular users who minimize and return.
+     */
+    private subscribeAppState = () => {
+        if (this.appStateSubscription) return;
+        this.appStateSubscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+            if (nextState === 'active' && this.socket && !this.socket.connected) {
+                console.log('[Socket] AppState active + socket disconnected → reconnect');
+                this.forceReconnect();
+            }
         });
     }
 
     /**
-     * Disconnect the socket manually (e.g. on logout)
+     * Force a full reconnect: tear down + re-init from scratch. Used by
+     * the watchdog and the AppState listener when socket.io's built-in
+     * reconnection has stalled.
      */
-    disconnect = () => {
+    forceReconnect = () => {
         if (this.socket) {
+            this.socket.removeAllListeners();
             this.socket.disconnect();
             this.socket = null;
         }
+        this.lastToken = null; // bypass the same-token guard so init() really runs
+        this.init();
+    }
+
+    /**
+     * Disconnect the socket manually (e.g. on logout).
+     */
+    disconnect = () => {
+        this.stopWatchdog();
+        if (this.appStateSubscription) {
+            this.appStateSubscription.remove();
+            this.appStateSubscription = null;
+        }
+        if (this.socket) {
+            this.socket.removeAllListeners();
+            this.socket.disconnect();
+            this.socket = null;
+        }
+        this.lastToken = null;
     }
 
     /**

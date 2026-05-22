@@ -21,6 +21,36 @@ class SocketService:
         room = f"merchant_{merchant_id}"
         socketio.emit(event, data, room=room)
 
+    @staticmethod
+    def emit_order_update(order):
+        """
+        Push an order_update event to the customer who placed it AND the
+        branch's merchant room. Idempotent payload — clients merge by id.
+        Safe to call from inside route handlers and the APScheduler sweep.
+        """
+        try:
+            payload = order.to_dict(include_branch=True, include_user=True)
+        except Exception as e:
+            print(f"[Socket] Failed to serialize order for emit: {e}")
+            return
+
+        if order.user_id:
+            try:
+                socketio.emit('order_update', payload, room=order.user_id)
+            except Exception as e:
+                print(f"[Socket] emit_to_user failed: {e}")
+
+        merchant_id = None
+        if order.branch and order.branch.merchant_id is not None:
+            merchant_id = order.branch.merchant_id
+        if merchant_id is not None:
+            try:
+                socketio.emit('order_update', payload, room=f"merchant_{merchant_id}")
+            except Exception as e:
+                print(f"[Socket] emit_to_merchant failed: {e}")
+
+        print(f"[Socket] order_update {order.order_number} → user {order.user_id} / merchant {merchant_id} (status={order.status}, payment={order.payment_status})")
+
 
 # Socket Events
 @socketio.on('connect')

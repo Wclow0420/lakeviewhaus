@@ -11,6 +11,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import LottieView from 'lottie-react-native';
 import { Button } from '@/components/ui/Button';
+import { Fonts } from '@/constants/theme';
 
 interface LuckyDrawSuccessProps {
     visible: boolean;
@@ -163,7 +164,7 @@ export const LuckyDrawSuccess = ({ visible, prizeName, prizeType, pointsEarned, 
                                     title="Collect Prize"
                                     onPress={handleClose}
                                     style={styles.collectButton}
-                                    textStyle={{ color: '#000', fontWeight: '700' }}
+                                    textStyle={{ color: '#000', fontFamily: Fonts.bold }}
                                 />
                             </Animated.View>
                         </View>
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
     mysteryText: {
         color: '#FCD259',
         fontSize: 22,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         marginTop: 20,
         textShadowColor: 'rgba(0,0,0,0.5)',
         textShadowRadius: 10
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
 
     title: {
         fontSize: 32,
-        fontWeight: '900',
+        fontFamily: Fonts.bold,
         color: '#FFF',
         marginBottom: 12,
         textAlign: 'center',
@@ -210,14 +211,14 @@ const styles = StyleSheet.create({
     },
     prizeName: {
         fontSize: 20,
-        fontWeight: '600',
+        fontFamily: Fonts.semibold,
         color: 'rgba(255,255,255,0.9)',
         marginBottom: 8,
         textAlign: 'center'
     },
     pointsValue: {
         fontSize: 28,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#FCD259',
         marginBottom: 24,
     },

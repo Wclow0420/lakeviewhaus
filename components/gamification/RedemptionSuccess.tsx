@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
 import * as Haptics from 'expo-haptics';
+import { Fonts } from '@/constants/theme';
 
 interface RedemptionSuccessProps {
     visible: boolean;
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 32,
-        fontWeight: '800',
+        fontFamily: Fonts.bold,
         color: '#FFF',
         marginTop: 20,
         textShadowColor: 'rgba(0,0,0,0.5)',
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
     },
     rewardName: {
         fontSize: 22,
-        fontWeight: '700',
+        fontFamily: Fonts.bold,
         color: '#FCD259', // Gold
         textAlign: 'center',
         marginTop: 8,

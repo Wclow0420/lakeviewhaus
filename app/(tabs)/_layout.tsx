@@ -36,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="rewards/index" />
       <Tabs.Screen name="scan/index" />
-      <Tabs.Screen name="store/index" />
+      <Tabs.Screen name="store" />
       <Tabs.Screen name="profile/index" />
     </Tabs>
   );
@@ -65,6 +65,25 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       transform: [{ translateX: translateX.value }],
     };
   });
+
+  // Check if we need to hide the tab bar
+  const currentRoute = state.routes[state.index];
+
+  // Check nested routes in the store stack
+  let shouldHide = false;
+  if (currentRoute.name === 'store') {
+    const storeState = currentRoute.state;
+    if (storeState && storeState.routes) {
+      const activeRoute = storeState.routes[storeState.index];
+      if (activeRoute && ['checkout', 'order-confirmation'].includes(activeRoute.name)) {
+        shouldHide = true;
+      }
+    }
+  }
+
+  if (shouldHide) {
+    return null;
+  }
 
   return (
     <View style={styles.tabBar}>
